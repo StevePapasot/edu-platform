@@ -17,7 +17,7 @@ import { greekEducationData, type Grade } from '@/src/data/greekEducation';
 import { SettingsModal } from '@/src/components/SettingsModal';
 
 // ============================================================================
-// ΣΤΑΤΙΚΑ ΔΕΔΟΜΕΝΑ (Έξω από το component για κορυφαία ταχύτητα)
+// ΣΤΑΤΙΚΑ ΔΕΔΟΜΕΝΑ
 // ============================================================================
 const challengesData = [
   { category: "Μαθηματικά", q: "Η εξίσωση ax² + bx + c = 0 (a≠0) έχει δύο άνισες πραγματικές ρίζες όταν:", options: ["Δ = 0", "Δ > 0", "Δ < 0", "Δ ≥ 0"], correct: 1 },
@@ -59,7 +59,7 @@ const guidanceSlides = [
 export default function DashboardPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [orgName, setOrgName] = useState<string>('');
+  const [orgName, setOrgName] = useState<string>('EduPlatform');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isOrgActive, setIsOrgActive] = useState(true);
@@ -96,11 +96,36 @@ export default function DashboardPage() {
             courseService.getUserRole(user.uid)
           ]);
           setUserProfile(profile);
-          setIsAdmin(userRole === 'admin' || user.email === 'test2@gmail.com');
+          setIsAdmin(userRole === 'admin' || user.email === 'test2@gmail.com' || user.email === 'spapasotiropoulos@gmail.com');
 
+          // 1. Βρίσκουμε την τάξη του χρήστη
+          let userGradeId = null;
+          let userCategoryId = null;
+
+          if (profile && profile.schoolType && profile.grade) {
+            const category = greekEducationData.find(c => c.id === profile.schoolType);
+            const grade = category?.grades.find(g => g.id === profile.grade || g.name === profile.grade);
+            
+            if (category && grade) {
+              userCategoryId = category.id;
+              userGradeId = grade.id;
+              setSelectedGrade(grade);
+              setSelectedOrientation((profile as any).orientation || null);
+              setSelectedSector((profile as any).sector || null);
+            } else { 
+              setSelectedGrade(greekEducationData[0].grades[0]); 
+            }
+          } else { 
+            setSelectedGrade(greekEducationData[0].grades[0]); 
+          }
+
+          // 2. Ελέγχουμε τον Οργανισμό (orgId)
           const userDocSnap = await getDoc(doc(db, 'users', user.uid));
           let currentOrgId = (profile as any)?.orgId;
-          if (userDocSnap.exists() && userDocSnap.data().orgId) currentOrgId = userDocSnap.data().orgId;
+          if (userDocSnap.exists() && userDocSnap.data().orgId) {
+            currentOrgId = userDocSnap.data().orgId;
+          }
+          if (!currentOrgId) currentOrgId = 'default-org';
 
           if (currentOrgId) {
             const orgsRef = collection(db, 'organizations');
@@ -110,37 +135,40 @@ export default function DashboardPage() {
             if (!orgSnap.empty) {
               const orgData = orgSnap.docs[0].data();
               setOrgName(orgData.name); 
-              if (orgData.status !== 'active') { setIsOrgActive(false); setLoading(false); return; }
+              if (orgData.status !== 'active') { 
+                setIsOrgActive(false); 
+                setLoading(false); 
+                return; 
+              }
             }
 
-            const [coursesSnap, lessonsSnap, progressSnap] = await Promise.all([
-              getDocs(query(collection(db, 'courses'), where("orgId", "==", currentOrgId))),
-              getDocs(query(collection(db, 'lessons'), where("orgId", "==", currentOrgId))),
-              getDocs(query(collection(db, 'userProgress'), where("userId", "==", user.uid)))
-            ]);
+            // 3. Τραβάμε τα δεδομένα
+            // Η ΑΛΛΑΓΗ: Τραβάμε ΟΛΑ τα courses του οργανισμού και τα φιλτράρουμε μετά στον client 
+            // για να αποφύγουμε τα λάθη στα queries του Firestore
+            const coursesSnap = await getDocs(query(collection(db, 'courses'), where("orgId", "==", currentOrgId)));
+            const lessonsSnap = await getDocs(query(collection(db, 'lessons'), where("orgId", "==", currentOrgId)));
+            const progressSnap = await getDocs(query(collection(db, 'userProgress'), where("userId", "==", user.uid)));
 
             const allLessons = lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const fetchedCourses = coursesSnap.docs.map(doc => {
-              const courseData = doc.data();
+            
+            let fetchedCourses = coursesSnap.docs.map(doc => {
+              const courseData = doc.data() as any;
               const total = allLessons.filter((l: any) => l.courseId === doc.id).length;
               const completedCount = progressSnap.docs.filter(p => p.data().courseId === doc.id).length;
               const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
               return { id: doc.id, ...courseData, progress: percentage };
             });
+
+            // Αν ο χρήστης έχει επιλέξει τάξη, φιλτράρουμε τα μαθήματα ΜΟΝΟ γι' αυτήν την τάξη
+            if (userGradeId) {
+              fetchedCourses = fetchedCourses.filter(course => course.gradeId === userGradeId);
+            }
+
             setOrgCourses(fetchedCourses);
           }
-
-          if (profile && profile.schoolType && profile.grade) {
-            const category = greekEducationData.find(c => c.id === profile.schoolType);
-            // Διορθωμένο find για να πιάνει και το name σε περίπτωση που αποθηκεύτηκε έτσι
-            const grade = category?.grades.find(g => g.id === profile.grade || g.name === profile.grade);
-            if (category && grade) {
-              setSelectedGrade(grade);
-              setSelectedOrientation((profile as any).orientation || null);
-              setSelectedSector((profile as any).sector || null);
-            } else { setSelectedGrade(greekEducationData[0].grades[0]); }
-          } else { setSelectedGrade(greekEducationData[0].grades[0]); }
-        } catch (error) { console.error(error); setSelectedGrade(greekEducationData[0].grades[0]); }
+        } catch (error) { 
+          console.error("Dashboard Fetch Error:", error); 
+        }
         setLoading(false);
       } else {
         window.location.href = '/';
@@ -181,12 +209,8 @@ export default function DashboardPage() {
   const rawName = userEmail.split('@')[0];
   const displayName = rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1) : '';
   
-  // --- ΧΕΙΡΟΥΡΓΙΚΗ ΔΙΟΡΘΩΣΗ ΕΔΩ ---
-  // Πιο έξυπνο φίλτρο: Πιάνει το μάθημα είτε αποθηκεύτηκε με το ID είτε με το Name της τάξης!
-  const displayCourses = orgCourses.filter(course => 
-    course.gradeId === selectedGrade?.id || course.gradeId === selectedGrade?.name
-  );
-  const completedCoursesCount = displayCourses.filter(c => c.progress === 100).length;
+  // Τα displayCourses είναι πλέον έτοιμα από το useEffect
+  const completedCoursesCount = orgCourses.filter(c => c.progress === 100).length;
 
   if (!isOrgActive) {
     return (
@@ -200,11 +224,15 @@ export default function DashboardPage() {
     );
   }
 
-  if (loading || !selectedGrade) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-blue-600" /></div>;
+  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans relative">
+    <div className="min-h-screen bg-[#f1f5f9] font-sans relative">
       
+      {/* BACKGROUND GLOWS */}
+      <div className="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[120px] pointer-events-none z-0"></div>
+      <div className="fixed bottom-[-10%] right-[10%] w-[600px] h-[600px] bg-indigo-400/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
       {/* NAVBAR */}
       <nav className="bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-[9999] w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -248,7 +276,7 @@ export default function DashboardPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none -mr-20 -mt-20"></div>
           <div className="relative z-10">
             <h2 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Καλώς ήρθες, <span className="text-blue-600">{displayName}</span>! 👋</h2>
-            <p className="text-lg text-gray-500 font-medium">Τάξη: <span className="text-indigo-600 font-bold">{selectedGrade.displayName || selectedGrade.name}</span></p>
+            <p className="text-lg text-gray-500 font-medium">Τάξη: <span className="text-indigo-600 font-bold">{selectedGrade?.displayName || selectedGrade?.name || 'Δεν έχει επιλεγεί'}</span></p>
             <div className="flex items-center gap-2 mt-4">
               <div className="bg-slate-100 px-3 py-1 rounded-lg"><span className="text-xs font-black text-slate-500 uppercase tracking-widest">{orgName || 'ΕΚΠΑΙΔΕΥΤΙΚΟΣ ΟΡΓΑΝΙΣΜΟΣ'}</span></div>
               <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
@@ -261,10 +289,10 @@ export default function DashboardPage() {
           <div className="relative z-10 bg-blue-600 px-8 py-6 rounded-3xl border border-blue-400 shadow-xl shadow-blue-100 text-white min-w-[240px]">
             <div className="text-xs font-bold opacity-80 mb-1 uppercase tracking-widest">ΣΗΜΕΡΙΝΟΣ ΣΤΟΧΟΣ</div>
             <div className="text-3xl font-black tracking-tighter">
-              {completedCoursesCount} / {displayCourses.length} <span className="text-lg font-medium opacity-90 ml-1">Μαθήματα</span>
+              {completedCoursesCount} / {orgCourses.length} <span className="text-lg font-medium opacity-90 ml-1">Μαθήματα</span>
             </div>
             <div className="mt-3 w-full bg-blue-400/30 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-white h-full transition-all duration-1000" style={{ width: `${displayCourses.length > 0 ? (completedCoursesCount / displayCourses.length) * 100 : 0}%` }}></div>
+              <div className="bg-white h-full transition-all duration-1000" style={{ width: `${orgCourses.length > 0 ? (completedCoursesCount / orgCourses.length) * 100 : 0}%` }}></div>
             </div>
           </div>
         </div>
@@ -273,7 +301,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-8">
             
             {/* ΚΑΤΕΥΘΥΝΣΕΙΣ */}
-            {selectedGrade.orientations && selectedGrade.orientations.length > 0 && (
+            {selectedGrade && selectedGrade.orientations && selectedGrade.orientations.length > 0 && (
               <div className="mb-8 bg-blue-50/50 border border-blue-100 rounded-2xl p-5">
                 <div className="flex items-center gap-2 mb-4"><GraduationCap className="w-5 h-5 text-blue-600" /><label className="text-sm font-black text-blue-900 uppercase tracking-wider">Επίλεξε την Κατεύθυνσή σου:</label></div>
                 <div className="flex flex-wrap gap-2">
@@ -291,7 +319,7 @@ export default function DashboardPage() {
                 <div className="h-px flex-1 bg-slate-100 ml-6 hidden sm:block"></div>
               </div>
               
-              {displayCourses.length === 0 ? (
+              {orgCourses.length === 0 ? (
                 <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center shadow-sm">
                   <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><BookOpen className="w-8 h-8 text-slate-300" /></div>
                   <h4 className="text-lg font-black text-slate-700 mb-2">Δεν υπάρχουν μαθήματα</h4>
@@ -299,9 +327,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {displayCourses.map((course) => (
-                    // --- ΧΕΙΡΟΥΡΓΙΚΗ ΔΙΟΡΘΩΣΗ 2: Inline Card αντί για την προβληματική SubjectCard ---
-                    // Αποφεύγουμε το crash επειδή δεν ψάχνουμε πλέον εικονίδιο για το "8By37j..."!
+                  {orgCourses.map((course) => (
                     <div 
                       key={course.id} 
                       onClick={() => window.location.href = `/dashboard/course/${course.id}`} 
