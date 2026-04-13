@@ -39,7 +39,9 @@ export default function CoursePage() {
 
         const courseData = courseSnap.data();
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const userOrgId = userDoc.exists() ? userDoc.data().orgId : null;
+        
+        // ΔΙΟΡΘΩΣΗ 1: Ασφαλής ανάγνωση του orgId με fallback
+        const userOrgId = (userDoc.exists() && userDoc.data().orgId) ? userDoc.data().orgId : 'default-org';
 
         if (courseData.orgId !== userOrgId && userDoc.data()?.role !== 'admin') {
           setAuthorized(false);
@@ -50,13 +52,22 @@ export default function CoursePage() {
         setAuthorized(true);
         setCourse({ id: courseSnap.id, ...courseData });
 
-        const chaptersQ = query(collection(db, 'chapters'), where("courseId", "==", courseId));
+        // ΔΙΟΡΘΩΣΗ 2: Προσθήκη του orgId στα queries για να τα επιτρέψει το Firebase
+        const chaptersQ = query(
+          collection(db, 'chapters'), 
+          where("courseId", "==", courseId),
+          where("orgId", "==", userOrgId)
+        );
         const chaptersSnap = await getDocs(chaptersQ);
         const fetchedChapters = chaptersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedChapters.sort((a: any, b: any) => a.order - b.order); 
         setChapters(fetchedChapters);
 
-        const lessonsQ = query(collection(db, 'lessons'), where("courseId", "==", courseId));
+        const lessonsQ = query(
+          collection(db, 'lessons'), 
+          where("courseId", "==", courseId),
+          where("orgId", "==", userOrgId)
+        );
         const lessonsSnap = await getDocs(lessonsQ);
         const fetchedLessons = lessonsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedLessons.sort((a: any, b: any) => a.order - b.order);
@@ -147,7 +158,7 @@ export default function CoursePage() {
                   >
                     <div className="flex items-center gap-5">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${isOpen ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-slate-200 text-slate-500'}`}>
-                        <span className="font-black">{chapter.order}</span>
+                        <span className="font-black">{chapter.order || '-'}</span>
                       </div>
                       <div>
                         <h3 className={`text-lg font-bold transition-colors ${isOpen ? 'text-blue-700' : 'text-slate-800'}`}>
@@ -184,7 +195,7 @@ export default function CoursePage() {
                                 </div>
                                 <div>
                                   <h4 className="font-bold text-slate-700 group-hover:text-blue-700 transition-colors">
-                                    {lesson.order}. {lesson.title}
+                                    {lesson.order ? `${lesson.order}. ` : ''}{lesson.title}
                                   </h4>
                                 </div>
                               </div>
