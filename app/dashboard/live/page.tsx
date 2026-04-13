@@ -9,9 +9,19 @@ import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firesto
 import { courseService } from '@/src/services/courseService';
 import { greekEducationData } from '@/src/data/greekEducation';
 
+// Ορίζουμε τι περιμένουμε να έχει ένα Live Room για να μην βγάζει error το build
+interface LiveRoom {
+  id: string;
+  title: string;
+  url: string;
+  isActive: boolean;
+  courseId: string;
+  courseDetails?: any;
+}
+
 export default function StudentLivePage() {
   const [loading, setLoading] = useState(true);
-  const [liveRooms, setLiveRooms] = useState<any[]>([]);
+  const [liveRooms, setLiveRooms] = useState<LiveRoom[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -20,7 +30,6 @@ export default function StudentLivePage() {
         try {
           const profile = await courseService.getUserProfile(user.uid);
           
-          // Ασφαλής εύρεση του orgId του μαθητή
           const userDocSnap = await getDoc(doc(db, 'users', user.uid));
           let currentOrgId = (profile as any)?.orgId;
           if (userDocSnap.exists() && userDocSnap.data().orgId) {
@@ -28,11 +37,9 @@ export default function StudentLivePage() {
           }
           if (!currentOrgId) currentOrgId = 'default-org';
           
-          // Βρίσκουμε το ID της τάξης του
           const category = greekEducationData.find(c => c.id === profile?.schoolType);
           const studentGradeId = category?.grades.find(g => g.id === profile?.grade)?.id;
 
-          // Τραβάμε Μαθήματα και Live Rooms
           const [coursesSnap, roomsSnap] = await Promise.all([
             getDocs(query(collection(db, 'courses'), where('orgId', '==', currentOrgId))),
             getDocs(query(collection(db, 'live_rooms'), where('orgId', '==', currentOrgId)))
@@ -40,12 +47,18 @@ export default function StudentLivePage() {
 
           const courses = coursesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
           
-          // Φιλτράρουμε ώστε να δει ΜΟΝΟ τα δωμάτια της τάξης του
           const activeRooms = roomsSnap.docs
             .map(d => {
               const roomData = d.data();
               const courseInfo = courses.find(c => c.id === roomData.courseId);
-              return { id: d.id, ...roomData, courseDetails: courseInfo };
+              return { 
+                id: d.id, 
+                title: roomData.title || '',
+                url: roomData.url || '',
+                isActive: roomData.isActive || false,
+                courseId: roomData.courseId || '',
+                courseDetails: courseInfo 
+              } as LiveRoom;
             })
             .filter(room => room.isActive && room.courseDetails?.gradeId === studentGradeId);
 
@@ -131,7 +144,6 @@ export default function StudentLivePage() {
             ))}
           </div>
         )}
-
       </div>
     </div>
   );
