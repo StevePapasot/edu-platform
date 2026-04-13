@@ -14,7 +14,6 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { courseService } from '@/src/services/courseService';
 import { greekEducationData, type Grade } from '@/src/data/greekEducation';
-import { SubjectCard } from '@/src/components/SubjectCard';
 import { SettingsModal } from '@/src/components/SettingsModal';
 
 // ============================================================================
@@ -133,7 +132,8 @@ export default function DashboardPage() {
 
           if (profile && profile.schoolType && profile.grade) {
             const category = greekEducationData.find(c => c.id === profile.schoolType);
-            const grade = category?.grades.find(g => g.id === profile.grade);
+            // Διορθωμένο find για να πιάνει και το name σε περίπτωση που αποθηκεύτηκε έτσι
+            const grade = category?.grades.find(g => g.id === profile.grade || g.name === profile.grade);
             if (category && grade) {
               setSelectedGrade(grade);
               setSelectedOrientation((profile as any).orientation || null);
@@ -180,7 +180,12 @@ export default function DashboardPage() {
   const userEmail = currentUser?.email || '';
   const rawName = userEmail.split('@')[0];
   const displayName = rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1) : '';
-  const displayCourses = orgCourses.filter(course => course.gradeId === selectedGrade?.id);
+  
+  // --- ΧΕΙΡΟΥΡΓΙΚΗ ΔΙΟΡΘΩΣΗ ΕΔΩ ---
+  // Πιο έξυπνο φίλτρο: Πιάνει το μάθημα είτε αποθηκεύτηκε με το ID είτε με το Name της τάξης!
+  const displayCourses = orgCourses.filter(course => 
+    course.gradeId === selectedGrade?.id || course.gradeId === selectedGrade?.name
+  );
   const completedCoursesCount = displayCourses.filter(c => c.progress === 100).length;
 
   if (!isOrgActive) {
@@ -200,7 +205,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans relative">
       
-      {/* NAVBAR ΜΕ ΚΟΥΜΠΙΑ WINDOW.LOCATION ΓΙΑ ΝΑ ΜΗΝ ΚΟΛΛΑΝΕ ΠΟΤΕ */}
+      {/* NAVBAR */}
       <nav className="bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100 sticky top-0 z-[9999] w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -243,7 +248,7 @@ export default function DashboardPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none -mr-20 -mt-20"></div>
           <div className="relative z-10">
             <h2 className="text-4xl font-black text-gray-900 mb-2 tracking-tight">Καλώς ήρθες, <span className="text-blue-600">{displayName}</span>! 👋</h2>
-            <p className="text-lg text-gray-500 font-medium">Τάξη: <span className="text-indigo-600 font-bold">{selectedGrade.displayName}</span></p>
+            <p className="text-lg text-gray-500 font-medium">Τάξη: <span className="text-indigo-600 font-bold">{selectedGrade.displayName || selectedGrade.name}</span></p>
             <div className="flex items-center gap-2 mt-4">
               <div className="bg-slate-100 px-3 py-1 rounded-lg"><span className="text-xs font-black text-slate-500 uppercase tracking-widest">{orgName || 'ΕΚΠΑΙΔΕΥΤΙΚΟΣ ΟΡΓΑΝΙΣΜΟΣ'}</span></div>
               <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
@@ -295,7 +300,30 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {displayCourses.map((course) => (
-                    <SubjectCard key={course.id} subject={{ id: course.id, title: course.title, progress: course.progress }} gradeId={selectedGrade.id} />
+                    // --- ΧΕΙΡΟΥΡΓΙΚΗ ΔΙΟΡΘΩΣΗ 2: Inline Card αντί για την προβληματική SubjectCard ---
+                    // Αποφεύγουμε το crash επειδή δεν ψάχνουμε πλέον εικονίδιο για το "8By37j..."!
+                    <div 
+                      key={course.id} 
+                      onClick={() => window.location.href = `/dashboard/course/${course.id}`} 
+                      className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                          <BookOpen className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-lg font-black text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                          {course.title}
+                        </h4>
+                      </div>
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          <span>ΠΡΟΟΔΟΣ</span><span className="text-slate-600">{course.progress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-600 rounded-full transition-all duration-1000" style={{ width: `${course.progress}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
