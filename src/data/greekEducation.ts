@@ -370,6 +370,13 @@ export const greekEducationData: Category[] = [
           },
 
            {
+            id: 'rest-c-epal',
+            name: 'Λοιπά',
+            subjects: [
+              { id: 'art-c-epal', name: 'Ιστορία της Τέχνης', icon: Heart, color: 'bg-rose-500', gradient: 'from-rose-400 to-pink-600' },
+            ],
+          },      
+            {
             id: 'construction-c-epal',
             name: 'Δομικών Έργων, Δομημένου Περιβάλλοντος & Αρχιτεκτονικού Σχεδιασμού',
             subjects: [
