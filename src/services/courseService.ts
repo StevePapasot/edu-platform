@@ -64,6 +64,74 @@ export interface CourseInfo {
 
 export const courseService = {
 
+  async initializeCourseData(): Promise<void> {
+    const courseName = 'Ηλεκτροτεχνία Γ\' ΕΠΑΛ';
+
+    const chaptersData: Omit<Chapter, 'id'>[] = [
+      { title: 'Εναλλασσόμενο Ρεύμα', orderIndex: 1, courseName },
+      { title: 'Κυκλώματα R-L-C', orderIndex: 2, courseName },
+      { title: 'Τριφασικά Συστήματα', orderIndex: 3, courseName },
+    ];
+
+    const chapter1Ref = doc(collection(db, 'chapters'));
+    const chapter2Ref = doc(collection(db, 'chapters'));
+    const chapter3Ref = doc(collection(db, 'chapters'));
+
+    await setDoc(chapter1Ref, { ...chaptersData[0], createdAt: serverTimestamp() });
+    await setDoc(chapter2Ref, { ...chaptersData[1], createdAt: serverTimestamp() });
+    await setDoc(chapter3Ref, { ...chaptersData[2], createdAt: serverTimestamp() });
+
+    const lessonsData = [
+      {
+        chapterId: chapter1Ref.id,
+        title: '1.1 Ορισμοί και Βασικές Έννοιες',
+        orderIndex: 1,
+        theoryContent: '<h2>Ορισμοί και Βασικές Έννοιες</h2><p>Το <strong>εναλλασσόμενο ρεύμα (AC)</strong> είναι η μορφή ηλεκτρικής ενέργειας που χρησιμοποιείται ευρέως στα σύγχρονα ηλεκτρικά δίκτυα.</p>',
+      },
+      {
+        chapterId: chapter1Ref.id,
+        title: '1.2 Επαγωγική Αντίσταση',
+        orderIndex: 2,
+        theoryContent: '<h2>Επαγωγική Αντίσταση (Inductive Reactance)</h2><p>Η <strong>επαγωγική αντίσταση (XL)</strong> είναι η αντίσταση που προσφέρει ένα πηνίο στη ροή του εναλλασσόμενου ρεύματος.</p>',
+      },
+      {
+        chapterId: chapter1Ref.id,
+        title: '1.3 Χωρητική Αντίσταση',
+        orderIndex: 3,
+        theoryContent: '<h2>Χωρητική Αντίσταση (Capacitive Reactance)</h2><p>Η <strong>χωρητική αντίσταση (XC)</strong> είναι η αντίσταση που προσφέρει ένας πυκνωτής στη ροή του εναλλασσόμενου ρεύματος.</p>',
+      },
+      {
+        chapterId: chapter2Ref.id,
+        title: '2.1 Σειριακά Κυκλώματα RLC',
+        orderIndex: 1,
+        theoryContent: '<h2>Σειριακά Κυκλώματα RLC</h2><p>Ένα σειριακό κύκλωμα RLC περιέχει αντίσταση (R), πηνίο (L) και πυκνωτή (C) συνδεδεμένα σε σειρά.</p>',
+      },
+      {
+        chapterId: chapter2Ref.id,
+        title: '2.2 Παράλληλα Κυκλώματα RLC',
+        orderIndex: 2,
+        theoryContent: '<h2>Παράλληλα Κυκλώματα RLC</h2><p>Σε παράλληλα κυκλώματα, τα στοιχεία R, L και C συνδέονται παράλληλα.</p>',
+      },
+      {
+        chapterId: chapter3Ref.id,
+        title: '3.1 Εισαγωγή στα Τριφασικά',
+        orderIndex: 1,
+        theoryContent: '<h2>Εισαγωγή στα Τριφασικά Συστήματα</h2><p>Τα τριφασικά συστήματα χρησιμοποιούνται ευρέως στη βιομηχανία για τη μεταφορά ηλεκτρικής ενέργειας.</p>',
+      },
+      {
+        chapterId: chapter3Ref.id,
+        title: '3.2 Σύνδεση Αστέρα και Τριγώνου',
+        orderIndex: 2,
+        theoryContent: '<h2>Συνδέσεις Αστέρα (Y) και Τριγώνου (Δ)</h2><p>Υπάρχουν δύο βασικές μέθοδοι σύνδεσης τριφασικών φορτίων.</p>',
+      },
+    ];
+
+    for (const lessonData of lessonsData) {
+      const lessonRef = doc(collection(db, 'lessons'));
+      await setDoc(lessonRef, { ...lessonData, createdAt: serverTimestamp() });
+    }
+  },
+
   async getChapters(courseName: string): Promise<Chapter[]> {
     const q = query(
       collection(db, 'chapters'),
