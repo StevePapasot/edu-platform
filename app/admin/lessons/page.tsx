@@ -11,7 +11,8 @@ import {
   getDoc, 
   addDoc, 
   deleteDoc,
-  serverTimestamp 
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Plus, Trash2, FileText, Loader2, BookOpen, Layers, Edit } from 'lucide-react';
@@ -22,20 +23,16 @@ export default function LessonsManagement() {
   const [adminProfile, setAdminProfile] = useState<any>(null);
   const [orgId, setOrgId] = useState<string>('');
   
-  // Data States
   const [courses, setCourses] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
   const [lessons, setLessons] = useState<any[]>([]);
   
-  // Selection States
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [selectedChapterId, setSelectedChapterId] = useState('');
 
-  // Form State
   const [newLesson, setNewLesson] = useState({ title: '', order: 1, type: 'text', content: '' });
   const [saving, setSaving] = useState(false);
 
-  // Editor Modal States
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any>(null);
 
@@ -104,6 +101,23 @@ export default function LessonsManagement() {
     const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     fetched.sort((a: any, b: any) => a.order - b.order);
     setLessons(fetched);
+  };
+
+  const handleDeleteLesson = async (lessonId: string) => {
+    if (!confirm('Διαγραφή αυτής της ενότητας;')) return;
+    try {
+      const batch = writeBatch(db);
+      const progressSnap = await getDocs(
+        query(collection(db, 'userProgress'), where('lessonId', '==', lessonId))
+      );
+      progressSnap.docs.forEach(p => batch.delete(p.ref));
+      batch.delete(doc(db, 'lessons', lessonId));
+      await batch.commit();
+      fetchLessons();
+    } catch (e) {
+      alert('Σφάλμα κατά τη διαγραφή.');
+      console.error(e);
+    }
   };
 
   const handleAddLesson = async (e: React.FormEvent) => {
@@ -271,12 +285,7 @@ export default function LessonsManagement() {
                           <Edit className="w-5 h-5" />
                         </button>
                         <button 
-                          onClick={async () => {
-                            if(confirm('Διαγραφή αυτής της ενότητας;')) {
-                              await deleteDoc(doc(db, 'lessons', lesson.id));
-                              fetchLessons();
-                            }
-                          }}
+                          onClick={() => handleDeleteLesson(lesson.id)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                           title="Διαγραφή"
                         >
