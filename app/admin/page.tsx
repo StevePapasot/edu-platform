@@ -127,21 +127,6 @@ export default function AdminConsole() {
     } catch (e) { alert('Σφάλμα κατά την αποθήκευση.'); }
   };
 
-  const handleAddChapter = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chapterTitle || !selectedCourseForChapter || !orgId) return;
-    try {
-      await addDoc(collection(db, 'chapters'), {
-        title: chapterTitle,
-        courseId: selectedCourseForChapter,
-        orgId: orgId,
-        createdAt: serverTimestamp()
-      });
-      setChapterTitle('');
-      fetchData(orgId);
-      alert('Το κεφάλαιο προστέθηκε!');
-    } catch (e) { alert('Σφάλμα.'); }
-  };
 
   const handleAddChapter = async (e: React.FormEvent) => {
   e.preventDefault();
