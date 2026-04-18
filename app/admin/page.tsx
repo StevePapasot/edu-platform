@@ -148,6 +148,33 @@ export default function AdminConsole() {
   } catch (e) { alert('Σφάλμα.'); }
 };
 
+
+  const handleAddUnit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!unitTitle || !selectedChapterForUnit || !orgId) return;
+  try {
+    const existingCount = units.filter(
+      u => u.chapterId === selectedChapterForUnit
+    ).length;
+    await addDoc(collection(db, 'lessons'), { 
+      title: unitTitle,
+      courseId: selectedCourseForUnit,
+      chapterId: selectedChapterForUnit,
+      type: unitType,
+      content: unitContent,
+      orgId: orgId,
+      order: existingCount + 1,
+      createdAt: serverTimestamp()
+    });
+    setUnitTitle('');
+    setUnitContent('');
+    fetchData(orgId);
+    alert('Η ενότητα αποθηκεύτηκε!');
+  } catch (e) { alert('Σφάλμα.'); }
+};
+
+
+  
   const handleAddLiveRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!liveTitle || !liveUrl || !selectedCourseForLive || !orgId || !teacherId) return;
