@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, query, where, getDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, query, where, getDoc, writeBatch } from 'firebase/firestore';
 import { courseService } from '@/src/services/courseService';
 import { greekEducationData, type Category, type Grade, type Subject } from '@/src/data/greekEducation';
 
