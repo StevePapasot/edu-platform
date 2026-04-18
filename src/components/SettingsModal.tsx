@@ -24,23 +24,21 @@ export function SettingsModal({ isOpen, onClose, userProfile, userId, onUpdate }
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
 
   // Όταν ανοίγει το Modal, "διαβάζει" τις τρέχουσες ρυθμίσεις του χρήστη
-  useEffect(() => {
-    if (isOpen && userProfile) {
-      const gradeInfo = findUserGrade(userProfile.schoolType || '', userProfile.grade || '');
-      if (gradeInfo) {
-        const cat = greekEducationData.find(c => c.id === gradeInfo.categoryId);
-        if (cat) {
-          setSelectedCategory(cat);
-          const grd = cat.grades.find(g => g.id === gradeInfo.gradeId);
-          if (grd) {
-            setSelectedGrade(grd);
-            setSelectedOrientation(userProfile.orientation || (grd.orientations ? grd.orientations[0].id : null));
-            setSelectedSector(userProfile.sector || (grd.sectors ? grd.sectors[0].id : null));
-          }
-        }
+ useEffect(() => {
+  if (isOpen && userProfile) {
+    // Direct ID-based lookup — Firestore stores 'epal', 'c-epal', not display names
+    const cat = greekEducationData.find(c => c.id === userProfile.schoolType);
+    if (cat) {
+      setSelectedCategory(cat);
+      const grd = cat.grades.find(g => g.id === userProfile.grade);
+      if (grd) {
+        setSelectedGrade(grd);
+        setSelectedOrientation(userProfile.orientation || null);
+        setSelectedSector(userProfile.sector || null);
       }
     }
-  }, [isOpen, userProfile]);
+  }
+}, [isOpen, userProfile]);
 
   if (!isOpen) return null;
 
