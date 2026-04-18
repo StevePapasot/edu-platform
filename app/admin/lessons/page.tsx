@@ -20,6 +20,7 @@ import { LessonEditorModal } from '@/src/components/LessonEditorModal';
 export default function LessonsManagement() {
   const [loading, setLoading] = useState(true);
   const [adminProfile, setAdminProfile] = useState<any>(null);
+  const [orgId, setOrgId] = useState<string>('');
   
   // Data States
   const [courses, setCourses] = useState<any[]>([]);
@@ -45,6 +46,7 @@ export default function LessonsManagement() {
         if (adminDoc.exists()) {
           const profile = adminDoc.data();
           setAdminProfile(profile);
+          setOrgId(profile.orgId || '');
           fetchCourses(profile.orgId);
         }
       }
@@ -52,9 +54,9 @@ export default function LessonsManagement() {
     return () => unsubscribe();
   }, []);
 
-  const fetchCourses = async (orgId: string) => {
+  const fetchCourses = async (currentOrgId: string) => {
     try {
-      const q = query(collection(db, 'courses'), where("orgId", "==", orgId));
+      const q = query(collection(db, 'courses'), where("orgId", "==", currentOrgId));
       const snap = await getDocs(q);
       setCourses(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
@@ -65,30 +67,39 @@ export default function LessonsManagement() {
   };
 
   useEffect(() => {
-    if (!selectedCourseId) {
+    if (!selectedCourseId || !orgId) {
       setChapters([]);
       return;
     }
     const fetchChapters = async () => {
-      const q = query(collection(db, 'chapters'), where("courseId", "==", selectedCourseId));
+      const q = query(
+        collection(db, 'chapters'),
+        where("courseId", "==", selectedCourseId),
+        where("orgId", "==", orgId)
+      );
       const snap = await getDocs(q);
       const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       fetched.sort((a: any, b: any) => a.order - b.order);
       setChapters(fetched);
     };
     fetchChapters();
-  }, [selectedCourseId]);
+  }, [selectedCourseId, orgId]);
 
   useEffect(() => {
-    if (!selectedChapterId) {
+    if (!selectedChapterId || !orgId) {
       setLessons([]);
       return;
     }
     fetchLessons();
-  }, [selectedChapterId]);
+  }, [selectedChapterId, orgId]);
 
   const fetchLessons = async () => {
-    const q = query(collection(db, 'lessons'), where("chapterId", "==", selectedChapterId));
+    if (!selectedChapterId || !orgId) return;
+    const q = query(
+      collection(db, 'lessons'),
+      where("chapterId", "==", selectedChapterId),
+      where("orgId", "==", orgId)
+    );
     const snap = await getDocs(q);
     const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     fetched.sort((a: any, b: any) => a.order - b.order);
@@ -97,14 +108,14 @@ export default function LessonsManagement() {
 
   const handleAddLesson = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminProfile?.orgId || !selectedCourseId || !selectedChapterId) return;
+    if (!orgId || !selectedCourseId || !selectedChapterId) return;
     setSaving(true);
     try {
       await addDoc(collection(db, 'lessons'), {
         ...newLesson,
         courseId: selectedCourseId,
         chapterId: selectedChapterId,
-        orgId: adminProfile.orgId,
+        orgId: orgId,
         createdAt: serverTimestamp()
       });
       setNewLesson({ title: '', order: lessons.length + 1, type: 'text', content: '' });
