@@ -95,27 +95,32 @@ export default function LessonsManagement() {
     setLessons(fetched);
   };
 
- const handleAddChapter = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!chapterTitle || !selectedCourseForChapter || !orgId) return;
-  try {
-    const existingCount = chapters.filter(
-      c => c.courseId === selectedCourseForChapter
-    ).length;
-    await addDoc(collection(db, 'chapters'), {
-      title: chapterTitle,
-      courseId: selectedCourseForChapter,
-      orgId: orgId,
-      order: existingCount + 1,
-      createdAt: serverTimestamp()
-    });
-    setChapterTitle('');
-    fetchData(orgId);
-    alert('Το κεφάλαιο προστέθηκε!');
-  } catch (e) { alert('Σφάλμα.'); }
-};
+  const handleAddLesson = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminProfile?.orgId || !selectedCourseId || !selectedChapterId) return;
+    setSaving(true);
+    try {
+      await addDoc(collection(db, 'lessons'), {
+        ...newLesson,
+        courseId: selectedCourseId,
+        chapterId: selectedChapterId,
+        orgId: adminProfile.orgId,
+        createdAt: serverTimestamp()
+      });
+      setNewLesson({ title: '', order: lessons.length + 1, type: 'text', content: '' });
+      fetchLessons();
+    } catch (error) {
+      console.error("Error adding lesson:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  // Άνοιγμα του Editor
+  const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCourseId(e.target.value);
+    setSelectedChapterId('');
+  };
+
   const openEditor = (lesson: any) => {
     setEditingLesson(lesson);
     setIsEditorOpen(true);
@@ -217,9 +222,9 @@ export default function LessonsManagement() {
               {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'ΠΡΟΣΘΗΚΗ ΕΝΟΤΗΤΑΣ'}
             </button>
             {!selectedChapterId && (
-               <p className="text-xs text-amber-600 font-bold text-center mt-2">
-                 Επιλέξτε μάθημα και κεφάλαιο πρώτα.
-               </p>
+              <p className="text-xs text-amber-600 font-bold text-center mt-2">
+                Επιλέξτε μάθημα και κεφάλαιο πρώτα.
+              </p>
             )}
           </form>
         </div>
@@ -247,7 +252,6 @@ export default function LessonsManagement() {
                         </span>
                       </td>
                       <td className="p-5 text-right flex items-center justify-end gap-2">
-                        {/* ΚΟΥΜΠΙ ΕΠΕΞΕΡΓΑΣΙΑΣ */}
                         <button 
                           onClick={() => openEditor(lesson)}
                           className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
@@ -255,7 +259,6 @@ export default function LessonsManagement() {
                         >
                           <Edit className="w-5 h-5" />
                         </button>
-
                         <button 
                           onClick={async () => {
                             if(confirm('Διαγραφή αυτής της ενότητας;')) {
@@ -290,17 +293,14 @@ export default function LessonsManagement() {
             )}
           </div>
         </div>
-
       </div>
 
-      {/* ΤΟ MODAL ΜΑΣ */}
       <LessonEditorModal 
         isOpen={isEditorOpen} 
         onClose={() => { setIsEditorOpen(false); setEditingLesson(null); }} 
         lesson={editingLesson} 
         onUpdate={fetchLessons} 
       />
-
     </div>
   );
 }
