@@ -44,13 +44,20 @@ export default function LessonStudyPage() {
         setCourseId(lessonData.courseId);
 
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const userOrgId = userDoc.exists() ? userDoc.data().orgId : null;
+const userOrgId = (userDoc.exists() && userDoc.data().orgId) 
+  ? userDoc.data().orgId 
+  : null;
+const userRole = userDoc.data()?.role;
 
-        if (lessonData.orgId !== userOrgId && userDoc.data()?.role !== 'admin') {
-          setAuthorized(false);
-          setLoading(false);
-          return;
-        }
+if (
+  lessonData.orgId !== userOrgId &&
+  userRole !== 'admin' &&
+  userRole !== 'superAdmin'
+) {
+  setAuthorized(false);
+  setLoading(false);
+  return;
+}
 
         // ΕΛΕΓΧΟΣ: Είναι ήδη ολοκληρωμένη η ενότητα;
         const progressRef = doc(db, 'userProgress', `${user.uid}_${lessonId}`);
