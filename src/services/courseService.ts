@@ -60,9 +60,7 @@ export interface CourseInfo {
   name: string;
   description: string;
   icon: string;
-},
-
-
+}
 
   async getChapters(courseName: string): Promise<Chapter[]> {
     const q = query(
