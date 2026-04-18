@@ -91,7 +91,7 @@ export default function DashboardPage() {
             courseService.getUserRole(user.uid)
           ]);
           setUserProfile(profile);
-          setIsAdmin(userRole === 'admin' || user.email === 'test2@gmail.com' || user.email === 'spapasotiropoulos@gmail.com');
+         setIsAdmin(userRole === 'admin' || userRole === 'superAdmin');
 
           // Εύρεση OrgID
           const userDocSnap = await getDoc(doc(db, 'users', user.uid));
