@@ -143,25 +143,25 @@ export default function AdminConsole() {
     } catch (e) { alert('Σφάλμα.'); }
   };
 
-  const handleAddUnit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!unitTitle || !selectedChapterForUnit || !orgId) return;
-    try {
-      await addDoc(collection(db, 'lessons'), { 
-        title: unitTitle,
-        courseId: selectedCourseForUnit,
-        chapterId: selectedChapterForUnit,
-        type: unitType,
-        content: unitContent,
-        orgId: orgId,
-        createdAt: serverTimestamp()
-      });
-      setUnitTitle('');
-      setUnitContent('');
-      fetchData(orgId);
-      alert('Η ενότητα αποθηκεύτηκε!');
-    } catch (e) { alert('Σφάλμα.'); }
-  };
+  const handleAddChapter = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!chapterTitle || !selectedCourseForChapter || !orgId) return;
+  try {
+    const existingCount = chapters.filter(
+      c => c.courseId === selectedCourseForChapter
+    ).length;
+    await addDoc(collection(db, 'chapters'), {
+      title: chapterTitle,
+      courseId: selectedCourseForChapter,
+      orgId: orgId,
+      order: existingCount + 1,
+      createdAt: serverTimestamp()
+    });
+    setChapterTitle('');
+    fetchData(orgId);
+    alert('Το κεφάλαιο προστέθηκε!');
+  } catch (e) { alert('Σφάλμα.'); }
+};
 
   const handleAddLiveRoom = async (e: React.FormEvent) => {
     e.preventDefault();
