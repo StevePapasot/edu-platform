@@ -48,7 +48,7 @@ export interface UserProgress {
 export interface UserProfile {
   uid: string;
   email: string;
-  role: 'student' | 'admin';
+  role: 'student' | 'admin' | 'superAdmin';
   schoolType?: string;
   grade?: string;
   createdAt?: any;
@@ -61,6 +61,8 @@ export interface CourseInfo {
   description: string;
   icon: string;
 }
+
+export const courseService = {
 
   async getChapters(courseName: string): Promise<Chapter[]> {
     const q = query(
@@ -192,9 +194,6 @@ export interface CourseInfo {
     ];
   },
 
-  // Admin CRUD Operations
-
-  // Chapter CRUD
   async createChapter(chapterData: Omit<Chapter, 'id'>): Promise<void> {
     const docRef = doc(collection(db, 'chapters'));
     await setDoc(docRef, chapterData);
@@ -210,7 +209,6 @@ export interface CourseInfo {
     await deleteDoc(docRef);
   },
 
-  // Lesson CRUD
   async createLesson(lessonData: Omit<Lesson, 'id'>): Promise<void> {
     const docRef = doc(collection(db, 'lessons'));
     await setDoc(docRef, lessonData);
@@ -226,7 +224,6 @@ export interface CourseInfo {
     await deleteDoc(docRef);
   },
 
-  // Quiz Question CRUD
   async createQuizQuestion(quizData: Omit<QuizQuestion, 'id'>): Promise<void> {
     const docRef = doc(collection(db, 'quizQuestions'));
     await setDoc(docRef, quizData);
