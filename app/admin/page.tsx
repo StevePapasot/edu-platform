@@ -60,7 +60,7 @@ export default function AdminConsole() {
       if (user) {
         try {
           const role = await courseService.getUserRole(user.uid);
-          if (role === 'admin' || user.email === 'test2@gmail.com' || user.email === 'spapasotiropoulos@gmail.com') {
+          if (role === 'admin' || role === 'superAdmin') {
             setIsAdmin(true);
             setTeacherId(user.uid);
 
