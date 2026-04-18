@@ -244,7 +244,7 @@ export const courseService = {
     }
   },
 
-  async getUserRole(uid: string): Promise<'student' | 'admin' | null> {
+  async getUserRole(uid: string): Promise<'student' | 'admin' | 'superAdmin' | null> {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
 
