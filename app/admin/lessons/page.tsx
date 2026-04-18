@@ -95,32 +95,25 @@ export default function LessonsManagement() {
     setLessons(fetched);
   };
 
-  const handleAddLesson = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!adminProfile?.orgId || !selectedCourseId || !selectedChapterId) return;
-
-    setSaving(true);
-    try {
-      await addDoc(collection(db, 'lessons'), {
-        ...newLesson,
-        courseId: selectedCourseId,
-        chapterId: selectedChapterId,
-        orgId: adminProfile.orgId,
-        createdAt: serverTimestamp()
-      });
-      setNewLesson({ title: '', order: lessons.length + 1, type: 'text', content: '' });
-      fetchLessons();
-    } catch (error) {
-      console.error("Error adding lesson:", error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedCourseId(e.target.value);
-    setSelectedChapterId(''); 
-  };
+ const handleAddChapter = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!chapterTitle || !selectedCourseForChapter || !orgId) return;
+  try {
+    const existingCount = chapters.filter(
+      c => c.courseId === selectedCourseForChapter
+    ).length;
+    await addDoc(collection(db, 'chapters'), {
+      title: chapterTitle,
+      courseId: selectedCourseForChapter,
+      orgId: orgId,
+      order: existingCount + 1,
+      createdAt: serverTimestamp()
+    });
+    setChapterTitle('');
+    fetchData(orgId);
+    alert('Το κεφάλαιο προστέθηκε!');
+  } catch (e) { alert('Σφάλμα.'); }
+};
 
   // Άνοιγμα του Editor
   const openEditor = (lesson: any) => {
