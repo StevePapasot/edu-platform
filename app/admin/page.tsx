@@ -195,14 +195,65 @@ export default function AdminConsole() {
     } catch (e) { alert('Σφάλμα.'); }
   };
 
-  const handleDelete = async (coll: string, id: string) => {
-    if(confirm('Είσαι σίγουρος για τη διαγραφή; Αυτή η ενέργεια δεν αναιρείται.')) {
-      try {
-        await deleteDoc(doc(db, coll, id));
-        fetchData(orgId!);
-      } catch (e) { alert('Σφάλμα κατά τη διαγραφή.'); }
+ const handleDelete = async (coll: string, id: string) => {
+  if (!confirm('Είσαι σίγουρος για τη διαγραφή; Αυτή η ενέργεια δεν αναιρείται.')) return;
+  
+  try {
+    const batch = writeBatch(db);
+
+    if (coll === 'courses') {
+      // Delete all chapters for this course
+      const chaptersSnap = await getDocs(query(collection(db, 'chapters'), where('courseId', '==', id)));
+      chaptersSnap.docs.forEach(d => batch.delete(d.ref));
+
+      // Delete all lessons for this course + their userProgress
+      const lessonsSnap = await getDocs(query(collection(db, 'lessons'), where('courseId', '==', id)));
+      for (const lessonDoc of lessonsSnap.docs) {
+        batch.delete(lessonDoc.ref);
+        const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', lessonDoc.id)));
+        progressSnap.docs.forEach(p => batch.delete(p.ref));
+      }
+
+      // Delete all live rooms for this course
+      const liveSnap = await getDocs(query(collection(db, 'live_rooms'), where('courseId', '==', id)));
+      liveSnap.docs.forEach(d => batch.delete(d.ref));
+
+      // Delete the course itself
+      batch.delete(doc(db, 'courses', id));
+
+    } else if (coll === 'chapters') {
+      // Delete all lessons for this chapter + their userProgress
+      const lessonsSnap = await getDocs(query(collection(db, 'lessons'), where('chapterId', '==', id)));
+      for (const lessonDoc of lessonsSnap.docs) {
+        batch.delete(lessonDoc.ref);
+        const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', lessonDoc.id)));
+        progressSnap.docs.forEach(p => batch.delete(p.ref));
+      }
+
+      // Delete the chapter itself
+      batch.delete(doc(db, 'chapters', id));
+
+    } else if (coll === 'lessons') {
+      // Delete userProgress for this lesson
+      const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', id)));
+      progressSnap.docs.forEach(p => batch.delete(p.ref));
+
+      // Delete the lesson itself
+      batch.delete(doc(db, 'lessons', id));
+
+    } else {
+      // live_rooms and anything else — just delete the doc
+      batch.delete(doc(db, coll, id));
     }
-  };
+
+    await batch.commit();
+    fetchData(orgId!);
+
+  } catch (e) { 
+    alert('Σφάλμα κατά τη διαγραφή.'); 
+    console.error(e);
+  }
+};
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#020617]">
