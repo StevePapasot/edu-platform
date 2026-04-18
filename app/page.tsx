@@ -86,7 +86,7 @@ export default function Home() {
         setCurrentUser(user);
         try {
           const role = await courseService.getUserRole(user.uid);
-          setIsAdmin(role === 'admin' || user.email === 'test2@gmail.com');
+          setIsAdmin(role === 'admin' || role === 'superAdmin');
           const profile = await courseService.getUserProfile(user.uid);
           if (profile?.grade) {
             const info = findUserGrade(profile.schoolType || '', profile.grade);
