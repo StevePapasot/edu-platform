@@ -183,26 +183,16 @@ export const courseService = {
   },
 
   async markLessonComplete(userId: string, lessonId: string): Promise<void> {
-    const docRef = doc(db, 'users', userId);
-    const docSnap = await getDoc(docRef);
-
-    const progressUpdate = {
-      completed: true,
-      completedAt: serverTimestamp(),
-    };
-
-    if (docSnap.exists()) {
-      await updateDoc(docRef, {
-        [`progress.${lessonId}`]: progressUpdate,
-      });
-    } else {
-      await setDoc(docRef, {
-        progress: {
-          [lessonId]: progressUpdate,
-        },
-      });
-    }
-  },
+  const docRef = doc(db, 'users', userId);
+  await setDoc(docRef, {
+    progress: {
+      [lessonId]: {
+        completed: true,
+        completedAt: serverTimestamp(),
+      },
+    },
+  }, { merge: true });
+},
 
   async createUserProfile(uid: string, email: string): Promise<void> {
     const docRef = doc(db, 'users', uid);
