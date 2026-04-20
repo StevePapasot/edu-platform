@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
   Target, Video, Lightbulb, User, LogOut, Settings, Bell, ExternalLink,
@@ -57,6 +58,7 @@ const guidanceSlides = [
 ];
 
 export default function Home() {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGuidanceModalOpen, setIsGuidanceModalOpen] = useState(false);
   const [currentGuidanceSlide, setCurrentGuidanceSlide] = useState(0); 
@@ -126,7 +128,7 @@ export default function Home() {
 
   const handleSignOut = async () => {
     await signOut(auth);
-    window.location.reload();
+    router.refresh();
   };
 
   const getDisplaySubjects = (): Subject[] => {
@@ -167,7 +169,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans relative">
       
-      {/* NAVBAR */}
       <nav className="bg-white/90 backdrop-blur-lg shadow-sm border-b border-gray-100 sticky top-0 z-[9999] h-16 w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
           <a href="/" className="text-2xl font-black text-blue-900 tracking-tight cursor-pointer">
@@ -198,7 +199,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* HERO SECTION */}
       <section className="bg-white py-16 sm:py-24 border-b border-gray-100 relative overflow-hidden">
         <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
@@ -212,7 +212,7 @@ export default function Home() {
             Μάθε τις δεξιότητες του μέλλοντος με την ένταση του σήμερα.
           </p>
           <button
-            onClick={() => currentUser ? window.location.href='/dashboard' : setIsModalOpen(true)}
+            onClick={() => currentUser ? router.push('/dashboard') : setIsModalOpen(true)}
             className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold px-10 py-5 rounded-2xl text-lg shadow-xl transform hover:-translate-y-1 transition-all cursor-pointer"
           >
             ΞΕΚΙΝΗΣΕ ΤΗ ΜΑΘΗΣΗ
@@ -220,7 +220,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* MAIN CONTENT */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8">
@@ -329,7 +328,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* SPLIT FAQ SECTION */}
       <section className="bg-white py-24 sm:py-32 border-t border-slate-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-slate-50/50 rounded-l-[100px] -z-10"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -358,7 +356,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FULL MODERN FOOTER */}
       <footer className="relative bg-[#020617] pt-24 pb-12 overflow-hidden">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] pointer-events-none opacity-50"></div>
         <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none opacity-50"></div>
@@ -389,9 +386,8 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* MODALS */}
       {isModalOpen && (
-        <OnboardingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAuthSuccess={() => { window.location.href='/dashboard'; }} />
+        <OnboardingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAuthSuccess={() => router.push('/dashboard')} />
       )}
 
       {isChallengesModalOpen && (
@@ -438,8 +434,8 @@ export default function Home() {
                 ))}
               </ul>
               <div className="flex justify-between mt-12">
-                <button onClick={() => setCurrentGuidanceSlide(p => p === 0 ? guidanceSlides.length - 1 : p - 1)} className="p-4 bg-white/5 hover:bg-white/20 rounded-full cursor-pointer"><ChevronLeft /></button>
-                <button onClick={() => setCurrentGuidanceSlide(p => p === guidanceSlides.length - 1 ? 0 : p + 1)} className="p-4 bg-white/5 hover:bg-white/20 rounded-full cursor-pointer"><ChevronRight /></button>
+                <button onClick={handlePrevSlide} className="p-4 bg-white/5 hover:bg-white/20 rounded-full cursor-pointer"><ChevronLeft /></button>
+                <button onClick={handleNextSlide} className="p-4 bg-white/5 hover:bg-white/20 rounded-full cursor-pointer"><ChevronRight /></button>
               </div>
             </div>
           </div>
