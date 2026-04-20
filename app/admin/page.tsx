@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { 
   BookOpen, LogOut, LayoutDashboard, ShieldCheck, Loader2, 
@@ -13,7 +14,6 @@ import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, query, wh
 import { courseService } from '@/src/services/courseService';
 import { greekEducationData, type Category, type Grade, type Subject } from '@/src/data/greekEducation';
 
-// Dynamic Import για τον Editor για να μην σκάει στο Server Side Rendering
 import 'react-quill/dist/quill.snow.css';
 const ReactQuill = dynamic(() => import('react-quill'), { 
   ssr: false,
@@ -21,21 +21,19 @@ const ReactQuill = dynamic(() => import('react-quill'), {
 });
 
 export default function AdminConsole() {
+  const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<'courses' | 'chapters' | 'units' | 'live'>('courses');
   
-  // --- CORE IDENTITY STATE ---
   const [orgId, setOrgId] = useState<string | null>(null);
   const [teacherId, setTeacherId] = useState<string | null>(null);
 
-  // --- DATA STATE ---
   const [courses, setCourses] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]); 
   const [liveRooms, setLiveRooms] = useState<any[]>([]);
 
-  // --- FORM STATES ---
   const [selectedCategory, setSelectedCategory] = useState<Category>(greekEducationData[0]);
   const [selectedGrade, setSelectedGrade] = useState<Grade>(greekEducationData[0].grades[0]);
   const [selectedOrientation, setSelectedOrientation] = useState<string | null>(null);
@@ -73,9 +71,9 @@ export default function AdminConsole() {
               setOrgId('default-org');
               fetchData('default-org');
             }
-          } else { window.location.href = '/dashboard'; }
-        } catch (e) { window.location.href = '/dashboard'; }
-      } else { window.location.href = '/'; }
+          } else { router.push('/dashboard'); }
+        } catch (e) { router.push('/dashboard'); }
+      } else { router.push('/'); }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -96,7 +94,6 @@ export default function AdminConsole() {
     } catch (e) { console.error("Error fetching data:", e); }
   };
 
-  // Βοηθητική συνάρτηση για τα μαθήματα ανάλογα με την επιλογή
   const getAvailableSubjects = (): Subject[] => {
     if (!selectedGrade) return [];
     if (selectedGrade.subjects && (!selectedOrientation && !selectedSector)) return selectedGrade.subjects;
@@ -127,54 +124,50 @@ export default function AdminConsole() {
     } catch (e) { alert('Σφάλμα κατά την αποθήκευση.'); }
   };
 
-
   const handleAddChapter = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!chapterTitle || !selectedCourseForChapter || !orgId) return;
-  try {
-    const existingCount = chapters.filter(
-      c => c.courseId === selectedCourseForChapter
-    ).length;
-    await addDoc(collection(db, 'chapters'), {
-      title: chapterTitle,
-      courseId: selectedCourseForChapter,
-      orgId: orgId,
-      order: existingCount + 1,
-      createdAt: serverTimestamp()
-    });
-    setChapterTitle('');
-    fetchData(orgId);
-    alert('Το κεφάλαιο προστέθηκε!');
-  } catch (e) { alert('Σφάλμα.'); }
-};
-
+    e.preventDefault();
+    if (!chapterTitle || !selectedCourseForChapter || !orgId) return;
+    try {
+      const existingCount = chapters.filter(
+        c => c.courseId === selectedCourseForChapter
+      ).length;
+      await addDoc(collection(db, 'chapters'), {
+        title: chapterTitle,
+        courseId: selectedCourseForChapter,
+        orgId: orgId,
+        order: existingCount + 1,
+        createdAt: serverTimestamp()
+      });
+      setChapterTitle('');
+      fetchData(orgId);
+      alert('Το κεφάλαιο προστέθηκε!');
+    } catch (e) { alert('Σφάλμα.'); }
+  };
 
   const handleAddUnit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!unitTitle || !selectedChapterForUnit || !orgId) return;
-  try {
-    const existingCount = units.filter(
-      u => u.chapterId === selectedChapterForUnit
-    ).length;
-    await addDoc(collection(db, 'lessons'), { 
-      title: unitTitle,
-      courseId: selectedCourseForUnit,
-      chapterId: selectedChapterForUnit,
-      type: unitType,
-      content: unitContent,
-      orgId: orgId,
-      order: existingCount + 1,
-      createdAt: serverTimestamp()
-    });
-    setUnitTitle('');
-    setUnitContent('');
-    fetchData(orgId);
-    alert('Η ενότητα αποθηκεύτηκε!');
-  } catch (e) { alert('Σφάλμα.'); }
-};
+    e.preventDefault();
+    if (!unitTitle || !selectedChapterForUnit || !orgId) return;
+    try {
+      const existingCount = units.filter(
+        u => u.chapterId === selectedChapterForUnit
+      ).length;
+      await addDoc(collection(db, 'lessons'), { 
+        title: unitTitle,
+        courseId: selectedCourseForUnit,
+        chapterId: selectedChapterForUnit,
+        type: unitType,
+        content: unitContent,
+        orgId: orgId,
+        order: existingCount + 1,
+        createdAt: serverTimestamp()
+      });
+      setUnitTitle('');
+      setUnitContent('');
+      fetchData(orgId);
+      alert('Η ενότητα αποθηκεύτηκε!');
+    } catch (e) { alert('Σφάλμα.'); }
+  };
 
-
-  
   const handleAddLiveRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!liveTitle || !liveUrl || !selectedCourseForLive || !orgId || !teacherId) return;
@@ -195,65 +188,54 @@ export default function AdminConsole() {
     } catch (e) { alert('Σφάλμα.'); }
   };
 
- const handleDelete = async (coll: string, id: string) => {
-  if (!confirm('Είσαι σίγουρος για τη διαγραφή; Αυτή η ενέργεια δεν αναιρείται.')) return;
-  
-  try {
-    const batch = writeBatch(db);
+  const handleDelete = async (coll: string, id: string) => {
+    if (!confirm('Είσαι σίγουρος για τη διαγραφή; Αυτή η ενέργεια δεν αναιρείται.')) return;
+    
+    try {
+      const batch = writeBatch(db);
 
-    if (coll === 'courses') {
-      // Delete all chapters for this course
-      const chaptersSnap = await getDocs(query(collection(db, 'chapters'), where('courseId', '==', id)));
-      chaptersSnap.docs.forEach(d => batch.delete(d.ref));
+      if (coll === 'courses') {
+        const chaptersSnap = await getDocs(query(collection(db, 'chapters'), where('courseId', '==', id)));
+        chaptersSnap.docs.forEach(d => batch.delete(d.ref));
 
-      // Delete all lessons for this course + their userProgress
-      const lessonsSnap = await getDocs(query(collection(db, 'lessons'), where('courseId', '==', id)));
-      for (const lessonDoc of lessonsSnap.docs) {
-        batch.delete(lessonDoc.ref);
-        const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', lessonDoc.id)));
+        const lessonsSnap = await getDocs(query(collection(db, 'lessons'), where('courseId', '==', id)));
+        for (const lessonDoc of lessonsSnap.docs) {
+          batch.delete(lessonDoc.ref);
+          const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', lessonDoc.id)));
+          progressSnap.docs.forEach(p => batch.delete(p.ref));
+        }
+
+        const liveSnap = await getDocs(query(collection(db, 'live_rooms'), where('courseId', '==', id)));
+        liveSnap.docs.forEach(d => batch.delete(d.ref));
+
+        batch.delete(doc(db, 'courses', id));
+
+      } else if (coll === 'chapters') {
+        const lessonsSnap = await getDocs(query(collection(db, 'lessons'), where('chapterId', '==', id)));
+        for (const lessonDoc of lessonsSnap.docs) {
+          batch.delete(lessonDoc.ref);
+          const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', lessonDoc.id)));
+          progressSnap.docs.forEach(p => batch.delete(p.ref));
+        }
+        batch.delete(doc(db, 'chapters', id));
+
+      } else if (coll === 'lessons') {
+        const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', id)));
         progressSnap.docs.forEach(p => batch.delete(p.ref));
+        batch.delete(doc(db, 'lessons', id));
+
+      } else {
+        batch.delete(doc(db, coll, id));
       }
 
-      // Delete all live rooms for this course
-      const liveSnap = await getDocs(query(collection(db, 'live_rooms'), where('courseId', '==', id)));
-      liveSnap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      fetchData(orgId!);
 
-      // Delete the course itself
-      batch.delete(doc(db, 'courses', id));
-
-    } else if (coll === 'chapters') {
-      // Delete all lessons for this chapter + their userProgress
-      const lessonsSnap = await getDocs(query(collection(db, 'lessons'), where('chapterId', '==', id)));
-      for (const lessonDoc of lessonsSnap.docs) {
-        batch.delete(lessonDoc.ref);
-        const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', lessonDoc.id)));
-        progressSnap.docs.forEach(p => batch.delete(p.ref));
-      }
-
-      // Delete the chapter itself
-      batch.delete(doc(db, 'chapters', id));
-
-    } else if (coll === 'lessons') {
-      // Delete userProgress for this lesson
-      const progressSnap = await getDocs(query(collection(db, 'userProgress'), where('lessonId', '==', id)));
-      progressSnap.docs.forEach(p => batch.delete(p.ref));
-
-      // Delete the lesson itself
-      batch.delete(doc(db, 'lessons', id));
-
-    } else {
-      // live_rooms and anything else — just delete the doc
-      batch.delete(doc(db, coll, id));
+    } catch (e) { 
+      alert('Σφάλμα κατά τη διαγραφή.'); 
+      console.error(e);
     }
-
-    await batch.commit();
-    fetchData(orgId!);
-
-  } catch (e) { 
-    alert('Σφάλμα κατά τη διαγραφή.'); 
-    console.error(e);
-  }
-};
+  };
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#020617]">
@@ -271,7 +253,6 @@ export default function AdminConsole() {
   return (
     <div className="min-h-screen bg-[#f1f5f9] flex font-sans relative selection:bg-blue-500/30 overflow-hidden">
       
-      {/* --- BACKGROUND DECORATIONS (THE MISSING 70 LINES PART 1) --- */}
       <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/20 to-indigo-400/0 rounded-full blur-[120px] pointer-events-none z-0 animate-pulse"></div>
       <div className="fixed bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-gradient-to-tr from-indigo-400/10 to-purple-400/0 rounded-full blur-[120px] pointer-events-none z-0"></div>
       
@@ -284,7 +265,6 @@ export default function AdminConsole() {
         <rect width="100%" height="100%" fill="url(#grid)" />
       </svg>
 
-      {/* --- SIDEBAR --- */}
       <aside className="w-72 bg-[#020617] text-slate-300 flex flex-col fixed h-full shadow-2xl z-50 border-r border-slate-800 transition-all duration-500">
         <div className="p-8 border-b border-slate-800/50 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-2xl animate-pulse"></div>
@@ -325,16 +305,15 @@ export default function AdminConsole() {
         </nav>
 
         <div className="p-6 border-t border-slate-800/50 space-y-3 bg-slate-900/30">
-          <button onClick={() => window.location.href='/dashboard'} className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest bg-white/5 hover:bg-emerald-500/10 hover:text-emerald-400 border border-white/5 transition-all">
+          <button onClick={() => router.push('/dashboard')} className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest bg-white/5 hover:bg-emerald-500/10 hover:text-emerald-400 border border-white/5 transition-all">
             <LayoutDashboard className="w-4 h-4" /> Student View
           </button>
-          <button onClick={() => {signOut(auth); window.location.href='/';}} className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 border border-white/5 transition-all">
+          <button onClick={() => signOut(auth).then(() => router.push('/'))} className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-xl font-black text-[11px] uppercase tracking-widest text-rose-400 hover:bg-rose-500/10 border border-white/5 transition-all">
             <LogOut className="w-4 h-4" /> Έξοδος
           </button>
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
       <main className="ml-72 flex-1 p-8 lg:p-14 overflow-y-auto h-screen relative z-10 custom-scrollbar">
         <div className="max-w-[1400px] mx-auto">
           
@@ -352,7 +331,6 @@ export default function AdminConsole() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
             
-            {/* LEFT COLUMN: FORMS */}
             <div className="lg:col-span-5 space-y-8">
               
               {activeView === 'courses' && (
@@ -490,7 +468,6 @@ export default function AdminConsole() {
               )}
             </div>
 
-            {/* RIGHT COLUMN: LISTS (THE MISSING 70 LINES PART 2) */}
             <div className="lg:col-span-7">
               <div className={`${glassCardClassName} animate-in fade-in slide-in-from-right-8 duration-500 min-h-[600px] flex flex-col`}>
                 <div className="flex items-center justify-between mb-10">
@@ -507,7 +484,6 @@ export default function AdminConsole() {
                 </div>
 
                 <div className="flex-1 space-y-4">
-                  {/* COURSES LIST UI */}
                   {activeView === 'courses' && courses.map(c => (
                     <div key={c.id} className="group flex items-center justify-between p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-200 hover:-translate-y-1 transition-all duration-300">
                       <div className="flex items-center gap-5">
@@ -528,7 +504,6 @@ export default function AdminConsole() {
                     </div>
                   ))}
 
-                  {/* CHAPTERS LIST UI */}
                   {activeView === 'chapters' && Array.from(new Set(chapters.map(ch => ch.courseId))).map(courseId => {
                     const parentCourse = courses.find(c => c.id === courseId);
                     const courseChapters = chapters.filter(ch => ch.courseId === courseId);
@@ -549,7 +524,6 @@ export default function AdminConsole() {
                     );
                   })}
 
-                  {/* UNITS LIST UI */}
                   {activeView === 'units' && chapters.map(chapter => {
                     const chapterUnits = units.filter(u => u.chapterId === chapter.id);
                     if (chapterUnits.length === 0) return null;
@@ -573,7 +547,6 @@ export default function AdminConsole() {
                     );
                   })}
 
-                  {/* LIVE ROOMS LIST UI */}
                   {activeView === 'live' && liveRooms.map(r => (
                     <div key={r.id} className="group flex items-center justify-between p-6 bg-white rounded-[2rem] border border-rose-100 shadow-sm hover:shadow-xl hover:border-rose-300 transition-all duration-300">
                        <div className="flex items-center gap-5">
@@ -591,12 +564,10 @@ export default function AdminConsole() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </main>
       
-      {/* CUSTOM SCROLLBAR CSS */}
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
