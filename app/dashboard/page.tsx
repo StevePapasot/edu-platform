@@ -12,7 +12,6 @@ import {
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { courseService } from '@/src/services/courseService';
 import { greekEducationData, type Grade } from '@/src/data/greekEducation';
 import { SubjectCard } from '@/src/components/SubjectCard';
 import { SettingsModal } from '@/src/components/SettingsModal';
@@ -84,19 +83,31 @@ export default function DashboardPage() {
       setCurrentUser(user);
       if (user) {
         try {
-          const [profile, userRole] = await Promise.all([
-            courseService.getUserProfile(user.uid),
-            courseService.getUserRole(user.uid)
-          ]);
+          // Single read — derive everything from one document
+          const userDocSnap = await getDoc(doc(db, 'users', user.uid));
+          if (!userDocSnap.exists()) {
+            router.push('/');
+            return;
+          }
+          const userData = userDocSnap.data();
+          const userRole = userData.role || 'student';
+          const currentOrgId = userData.orgId || 'default-org';
+
+          const profile = {
+            uid: userData.uid,
+            email: userData.email,
+            role: userRole,
+            schoolType: userData.schoolType,
+            grade: userData.grade,
+            orientation: userData.orientation,
+            sector: userData.sector,
+            orgId: currentOrgId,
+            createdAt: userData.createdAt,
+            progress: userData.progress || {},
+          };
+
           setUserProfile(profile);
           setIsAdmin(userRole === 'admin' || userRole === 'superAdmin');
-
-          const userDocSnap = await getDoc(doc(db, 'users', user.uid));
-          let currentOrgId = (profile as any)?.orgId;
-          if (userDocSnap.exists() && userDocSnap.data().orgId) {
-            currentOrgId = userDocSnap.data().orgId;
-          }
-          if (!currentOrgId) currentOrgId = 'default-org';
 
           if (currentOrgId) {
             const orgsRef = collection(db, 'organizations');
@@ -126,15 +137,17 @@ export default function DashboardPage() {
             setOrgCourses(fetchedCourses);
           }
 
-          if (profile && profile.schoolType && profile.grade) {
+          // Set grade from profile
+          if (profile.schoolType && profile.grade) {
             const category = greekEducationData.find(c => c.id === profile.schoolType);
             const grade = category?.grades.find(g => g.id === profile.grade || g.name === profile.grade);
             if (category && grade) {
               setSelectedGrade(grade);
-              setSelectedOrientation((profile as any).orientation || null);
-              setSelectedSector((profile as any).sector || null);
+              setSelectedOrientation(profile.orientation || null);
+              setSelectedSector(profile.sector || null);
             } else { setSelectedGrade(greekEducationData[0].grades[0]); }
           } else { setSelectedGrade(greekEducationData[0].grades[0]); }
+
         } catch (error) { 
           console.error("Dashboard Fetch Error:", error); 
           setSelectedGrade(greekEducationData[0].grades[0]); 
