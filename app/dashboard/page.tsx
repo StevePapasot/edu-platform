@@ -52,6 +52,7 @@ const guidanceSlides = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [orgName, setOrgName] = useState<string>('EduPlatform');
@@ -69,7 +70,6 @@ export default function DashboardPage() {
   const [newsfeed, setNewsfeed] = useState<any[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
 
-  // Modals State
   const [isGuidanceModalOpen, setIsGuidanceModalOpen] = useState(false);
   const [currentGuidanceSlide, setCurrentGuidanceSlide] = useState(0); 
   const [isChallengesModalOpen, setIsChallengesModalOpen] = useState(false);
@@ -78,8 +78,6 @@ export default function DashboardPage() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [quizFinished, setQuizFinished] = useState(false);
-  
-  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -91,9 +89,8 @@ export default function DashboardPage() {
             courseService.getUserRole(user.uid)
           ]);
           setUserProfile(profile);
-         setIsAdmin(userRole === 'admin' || userRole === 'superAdmin');
+          setIsAdmin(userRole === 'admin' || userRole === 'superAdmin');
 
-          // Εύρεση OrgID
           const userDocSnap = await getDoc(doc(db, 'users', user.uid));
           let currentOrgId = (profile as any)?.orgId;
           if (userDocSnap.exists() && userDocSnap.data().orgId) {
@@ -112,7 +109,6 @@ export default function DashboardPage() {
               if (orgData.status !== 'active') { setIsOrgActive(false); setLoading(false); return; }
             }
 
-            // Τραβάμε ΟΛΑ τα μαθήματα του Οργανισμού
             const [coursesSnap, lessonsSnap, progressSnap] = await Promise.all([
               getDocs(query(collection(db, 'courses'), where("orgId", "==", currentOrgId))),
               getDocs(query(collection(db, 'lessons'), where("orgId", "==", currentOrgId))),
@@ -130,7 +126,6 @@ export default function DashboardPage() {
             setOrgCourses(fetchedCourses);
           }
 
-          // Ορισμός Τάξης
           if (profile && profile.schoolType && profile.grade) {
             const category = greekEducationData.find(c => c.id === profile.schoolType);
             const grade = category?.grades.find(g => g.id === profile.grade || g.name === profile.grade);
@@ -146,7 +141,7 @@ export default function DashboardPage() {
         }
         setLoading(false);
       } else {
-        window.location.href = '/';
+        router.push('/');
       }
     });
     return () => unsubscribe();
@@ -170,7 +165,7 @@ export default function DashboardPage() {
   }, []);
 
   const handleSignOut = async () => {
-    try { await signOut(auth); window.location.href = '/'; } catch (e) { console.error(e); }
+    try { await signOut(auth); router.push('/'); } catch (e) { console.error(e); }
   };
 
   const handleQuizAnswer = (i: number) => { if (showQuizResult) return; setSelectedAnswer(i); setShowQuizResult(true); if (i === challengesData[currentQuizIndex].correct) setQuizScore(p => p + 1); };
@@ -183,7 +178,6 @@ export default function DashboardPage() {
   const rawName = userEmail.split('@')[0];
   const displayName = rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1) : '';
   
-  // Φιλτράρισμα μαθημάτων
   const displayCourses = orgCourses.filter(course => 
     course.gradeId === selectedGrade?.id || course.gradeId === selectedGrade?.name || course.gradeId === selectedGrade?.displayName
   );
@@ -207,15 +201,13 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f1f5f9] font-sans relative selection:bg-blue-500/30">
       
-      {/* BACKGROUND GLOWS */}
       <div className="fixed top-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[120px] pointer-events-none z-0"></div>
       <div className="fixed bottom-[-10%] right-[10%] w-[600px] h-[600px] bg-indigo-400/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
-      {/* NAVBAR */}
       <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b border-white/50 sticky top-0 z-[9999] w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <button onClick={() => window.location.href = '/'} className="cursor-pointer relative z-50 bg-transparent border-none p-0 flex items-center group">
+            <button onClick={() => router.push('/')} className="cursor-pointer relative z-50 bg-transparent border-none p-0 flex items-center group">
               <h1 className="text-2xl font-black text-blue-900 group-hover:text-blue-700 transition-colors tracking-tight">EduPlatform</h1>
             </button>
             <div className="flex items-center gap-4 relative z-50">
@@ -227,7 +219,7 @@ export default function DashboardPage() {
                 <UserCog className="w-4 h-4 group-hover:rotate-12 transition-transform" /><span className="hidden sm:inline">Ρυθμίσεις</span>
               </button>
               {isAdmin && (
-                <button onClick={() => window.location.href = '/admin'} className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors shadow-sm cursor-pointer active:scale-95">
+                <button onClick={() => router.push('/admin')} className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors shadow-sm cursor-pointer active:scale-95">
                   <Settings className="w-4 h-4" /><span className="hidden sm:inline">Admin Panel</span>
                 </button>
               )}
@@ -241,7 +233,6 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        {/* HERO CARD */}
         <div className="mb-10 bg-white rounded-3xl shadow-sm border border-gray-100 p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none -mr-20 -mt-20"></div>
           <div className="relative z-10">
@@ -279,7 +270,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* ΜΑΘΗΜΑΤΑ */}
             <section>
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3"><BookOpen className="w-6 h-6 text-blue-600" />Τα Μαθήματά σου</h3>
@@ -297,7 +287,7 @@ export default function DashboardPage() {
                   {displayCourses.map((course) => (
                     <div 
                       key={course.id} 
-                      onClick={() => window.location.href = `/dashboard/course/${course.id}`} 
+                      onClick={() => router.push(`/dashboard/course/${course.id}`)} 
                       className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-4 mb-6">
@@ -325,7 +315,6 @@ export default function DashboardPage() {
 
           <div className="lg:col-span-4 space-y-8">
             
-            {/* ΝΕΑ */}
             <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
               <div className="flex items-center justify-between mb-6 mt-2">
@@ -346,11 +335,10 @@ export default function DashboardPage() {
               </div>
             </div>
             
-            {/* ΕΡΓΑΛΕΙΑ */}
             <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
               <h3 className="text-xs font-black text-gray-400 mb-6 uppercase tracking-[0.2em] text-center border-b border-slate-50 pb-4">ΕΡΓΑΛΕΙΑ ΜΑΘΗΣΗΣ</h3>
               <div className="grid grid-cols-1 gap-3">
-                <button onClick={() => window.location.href = '/dashboard/live'} className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl hover:bg-slate-50 transition-all hover:shadow-md group w-full cursor-pointer">
+                <button onClick={() => router.push('/dashboard/live')} className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl hover:bg-slate-50 transition-all hover:shadow-md group w-full cursor-pointer">
                   <div className="bg-red-500 p-3 rounded-xl shadow-sm group-hover:scale-110 transition-transform"><Video className="w-5 h-5 text-white" /></div>
                   <span className="font-bold text-gray-700 text-left text-sm uppercase tracking-tight">ΖΩΝΤΑΝΑ ΜΑΘΗΜΑΤΑ</span><ChevronRight className="w-4 h-4 ml-auto text-slate-300 group-hover:text-slate-600 transition-colors" />
                 </button>
@@ -365,7 +353,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* AFFILIATES */}
             <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 p-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
               <div className="flex items-center justify-center gap-3 mb-6 relative z-10"><div className="p-2 bg-slate-800 rounded-lg"><Gift className="w-4 h-4 text-fuchsia-400" /></div><h3 className="text-xs font-black text-slate-300 uppercase tracking-widest">ΧΟΡΗΓΟΙ & ΠΡΟΣΦΟΡΕΣ</h3></div>
@@ -382,12 +369,10 @@ export default function DashboardPage() {
                 })}
               </div>
             </div>
-
           </div>
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-12 border-t border-slate-200/60">
         <div className="flex flex-col md:flex-row justify-between items-center gap-10">
           <div className="space-y-2 text-center md:text-left">
@@ -405,7 +390,6 @@ export default function DashboardPage() {
         </div>
       </footer>
 
-      {/* MODALS */}
       {isChallengesModalOpen && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
           <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-lg transition-opacity" onClick={() => setIsChallengesModalOpen(false)}></div>
@@ -478,7 +462,7 @@ export default function DashboardPage() {
       )}
 
       {isSettingsOpen && (
-        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} userProfile={userProfile} userId={currentUser?.uid} onUpdate={() => window.location.reload()} />
+        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} userProfile={userProfile} userId={currentUser?.uid} onUpdate={() => router.refresh()} />
       )}
     </div>
   );
