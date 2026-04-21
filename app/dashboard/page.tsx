@@ -11,7 +11,7 @@ import {
 
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, getCountFromServer } from 'firebase/firestore';
 import { greekEducationData, type Grade } from '@/src/data/greekEducation';
 import { SubjectCard } from '@/src/components/SubjectCard';
 import { SettingsModal } from '@/src/components/SettingsModal';
