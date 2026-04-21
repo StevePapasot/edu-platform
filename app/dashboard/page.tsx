@@ -120,21 +120,27 @@ export default function DashboardPage() {
               if (orgData.status !== 'active') { setIsOrgActive(false); setLoading(false); return; }
             }
 
-            const [coursesSnap, lessonsSnap, progressSnap] = await Promise.all([
-              getDocs(query(collection(db, 'courses'), where("orgId", "==", currentOrgId))),
-              getDocs(query(collection(db, 'lessons'), where("orgId", "==", currentOrgId))),
-              getDocs(query(collection(db, 'userProgress'), where("userId", "==", user.uid)))
-            ]);
+            const [coursesSnap, progressSnap] = await Promise.all([
+  getDocs(query(collection(db, 'courses'), where("orgId", "==", currentOrgId))),
+  getDocs(query(collection(db, 'userProgress'), where("userId", "==", user.uid)))
+]);
 
-            const allLessons = lessonsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-            const fetchedCourses = coursesSnap.docs.map(doc => {
-              const courseData = doc.data();
-              const total = allLessons.filter((l: any) => l.courseId === doc.id).length;
-              const completedCount = progressSnap.docs.filter(p => p.data().courseId === doc.id).length;
-              const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
-              return { id: doc.id, ...courseData, progress: percentage };
-            });
-            setOrgCourses(fetchedCourses);
+// Count lessons per course using getCountFromServer — no content downloaded
+const fetchedCourses = await Promise.all(
+  coursesSnap.docs.map(async (courseDoc) => {
+    const courseData = courseDoc.data();
+    const lessonCountSnap = await getCountFromServer(
+      query(collection(db, 'lessons'), where("courseId", "==", courseDoc.id))
+    );
+    const total = lessonCountSnap.data().count;
+    const completedCount = progressSnap.docs.filter(
+      p => p.data().courseId === courseDoc.id
+    ).length;
+    const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+    return { id: courseDoc.id, ...courseData, progress: percentage };
+  })
+);
+setOrgCourses(fetchedCourses);
           }
 
           // Set grade from profile
