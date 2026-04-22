@@ -637,8 +637,20 @@ export default function AdminConsole() {
 
                   
 
-                  {activeView === 'units' && chapters.map(chapter => {
-                    const chapterUnits = units.filter(u => u.chapterId === chapter.id);
+                  {activeView === 'units' && !selectedCourseForUnit && (
+                    <div className="p-16 text-center">
+                      <BookOpen className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                      <p className="text-slate-500 font-medium">Επίλεξε μάθημα για να δεις την ύλη του.</p>
+                    </div>
+                  )}
+
+                  {activeView === 'units' && selectedCourseForUnit && chapters
+                    .filter(ch => ch.courseId === selectedCourseForUnit)
+                    .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+                    .map(chapter => {
+                    const chapterUnits = units
+                      .filter(u => u.chapterId === chapter.id)
+                      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
                     if (chapterUnits.length === 0) return null;
                     return (
                       <div key={chapter.id} className="mb-10 animate-in fade-in duration-500">
