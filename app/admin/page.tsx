@@ -48,6 +48,8 @@ export default function AdminConsole() {
   const [selectedChapterForUnit, setSelectedChapterForUnit] = useState('');
   const [unitType, setUnitType] = useState('video');
   const [unitContent, setUnitContent] = useState('');
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const [pdfFileName, setPdfFileName] = useState('');
 
   const [liveTitle, setLiveTitle] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
