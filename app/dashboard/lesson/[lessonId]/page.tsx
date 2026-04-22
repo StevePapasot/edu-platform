@@ -155,7 +155,7 @@ export default function LessonStudyPage() {
                 title={lesson.title}
               />
             </div>
-            <div className="flex justify-center">
+         <div className="flex justify-center">
               
                 href={lesson.content}
                 download
@@ -167,7 +167,6 @@ export default function LessonStudyPage() {
                 ΚΑΤΕΒΑΣΜΑ PDF
               </a>
             </div>
-          </div>
         )}
 
         {/* QUIZ — placeholder for now */}
