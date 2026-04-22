@@ -595,25 +595,47 @@ export default function AdminConsole() {
                     </div>
                   ))}
 
-                  {activeView === 'chapters' && Array.from(new Set(chapters.map(ch => ch.courseId))).map(courseId => {
-                    const parentCourse = courses.find(c => c.id === courseId);
-                    const courseChapters = chapters.filter(ch => ch.courseId === courseId);
+
+                  {activeView === 'chapters' && !selectedCourseForChapter && (
+                    <div className="p-16 text-center">
+                      <FolderTree className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                      <p className="text-slate-500 font-medium">Επίλεξε μάθημα για να δεις τα κεφάλαιά του.</p>
+                    </div>
+                  )}
+
+                  {activeView === 'chapters' && selectedCourseForChapter && (() => {
+                    const parentCourse = courses.find(c => c.id === selectedCourseForChapter);
+                    const courseChapters = chapters
+                      .filter(ch => ch.courseId === selectedCourseForChapter)
+                      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+                    
+                    if (courseChapters.length === 0) {
+                      return (
+                        <div className="p-16 text-center">
+                          <Layers className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                          <p className="text-slate-500 font-medium">Το μάθημα <strong>{parentCourse?.title}</strong> δεν έχει κεφάλαια ακόμα.</p>
+                        </div>
+                      );
+                    }
+                    
                     return (
-                      <div key={courseId} className="mb-8 last:mb-0">
+                      <div className="mb-8">
                         <h4 className="font-black text-slate-400 mb-4 ml-2 text-[11px] uppercase tracking-[0.3em] flex items-center gap-3">
                           <div className="w-8 h-[2px] bg-slate-200"></div>{parentCourse?.title || 'Άγνωστο Μάθημα'}
                         </h4>
                         <div className="grid grid-cols-1 gap-3 pl-4 border-l-2 border-slate-100 ml-2">
                           {courseChapters.map(ch => (
                             <div key={ch.id} className="flex items-center justify-between p-5 bg-white border border-slate-100 shadow-sm rounded-2xl hover:border-indigo-200 transition-all group">
-                               <span className="font-bold text-slate-700 text-lg">{ch.title}</span>
+                               <span className="font-bold text-slate-700 text-lg">{ch.order ? `${ch.order}. ` : ''}{ch.title}</span>
                                <button onClick={() => handleDelete('chapters', ch.id)} className="p-3 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-5 h-5"/></button>
                             </div>
                           ))}
                         </div>
                       </div>
                     );
-                  })}
+                  })()}
+
+                  
 
                   {activeView === 'units' && chapters.map(chapter => {
                     const chapterUnits = units.filter(u => u.chapterId === chapter.id);
