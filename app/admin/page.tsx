@@ -6,13 +6,14 @@ import dynamic from 'next/dynamic';
 import { 
   BookOpen, LogOut, LayoutDashboard, ShieldCheck, Loader2, 
   Video, Plus, Trash2, Layers, FileText, FolderTree, Sparkles, MonitorPlay,
-  ChevronRight, ArrowRight, Settings, Globe, Zap, HelpCircle
+  ChevronRight, ArrowRight, Settings, Globe, Zap, HelpCircle, Edit
 } from 'lucide-react';
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, query, where, getDoc, writeBatch } from 'firebase/firestore';
 import { courseService } from '@/src/services/courseService';
 import { greekEducationData, type Category, type Grade, type Subject } from '@/src/data/greekEducation';
+import { LessonEditorModal } from '@/src/components/LessonEditorModal';
 
 import 'react-quill/dist/quill.snow.css';
 const ReactQuill = dynamic(() => import('react-quill'), { 
@@ -54,6 +55,10 @@ export default function AdminConsole() {
   const [liveTitle, setLiveTitle] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
   const [selectedCourseForLive, setSelectedCourseForLive] = useState('');
+
+  // Editor modal state
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<any>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -633,7 +638,22 @@ export default function AdminConsole() {
                                   </div>
                                   <span className="font-bold text-slate-700">{u.title}</span>
                                </div>
-                               <button onClick={() => handleDelete('lessons', u.id)} className="p-3 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-5 h-5"/></button>
+                               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                 <button 
+                                   onClick={() => { setEditingLesson(u); setIsEditorOpen(true); }}
+                                   className="p-3 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                   title="Επεξεργασία"
+                                 >
+                                   <Edit className="w-5 h-5"/>
+                                 </button>
+                                 <button 
+                                   onClick={() => handleDelete('lessons', u.id)} 
+                                   className="p-3 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                   title="Διαγραφή"
+                                 >
+                                   <Trash2 className="w-5 h-5"/>
+                                 </button>
+                               </div>
                             </div>
                           ))}
                         </div>
@@ -661,6 +681,13 @@ export default function AdminConsole() {
           </div>
         </div>
       </main>
+
+      <LessonEditorModal 
+        isOpen={isEditorOpen}
+        onClose={() => { setIsEditorOpen(false); setEditingLesson(null); }}
+        lesson={editingLesson}
+        onUpdate={() => orgId && fetchData(orgId)}
+      />
       
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
