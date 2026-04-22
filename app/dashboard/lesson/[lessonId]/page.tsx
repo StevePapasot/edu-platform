@@ -145,7 +145,7 @@ export default function LessonStudyPage() {
           </div>
         )}
 
-        {/* PDF */}
+       {/* PDF */}
         {lesson.type === 'pdf' && (
           <div className="mt-8 space-y-4">
             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
@@ -155,7 +155,7 @@ export default function LessonStudyPage() {
                 title={lesson.title}
               />
             </div>
-         <div className="flex justify-center">
+            <div className="flex justify-center">
               
                 href={lesson.content}
                 download
@@ -167,6 +167,7 @@ export default function LessonStudyPage() {
                 ΚΑΤΕΒΑΣΜΑ PDF
               </a>
             </div>
+          </div>
         )}
 
         {/* QUIZ — placeholder for now */}
