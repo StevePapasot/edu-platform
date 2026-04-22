@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { 
   BookOpen, LogOut, LayoutDashboard, ShieldCheck, Loader2, 
   Video, Plus, Trash2, Layers, FileText, FolderTree, Sparkles, MonitorPlay,
-  ChevronRight, ArrowRight, Settings, Globe, Zap
+  ChevronRight, ArrowRight, Settings, Globe, Zap, HelpCircle
 } from 'lucide-react';
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -149,6 +149,11 @@ export default function AdminConsole() {
   const handleAddUnit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!unitTitle || !selectedChapterForUnit || !orgId) return;
+    if (unitType === 'quiz') { alert('Το Quiz builder έρχεται σύντομα.'); return; }
+    if ((unitType === 'video' || unitType === 'pdf') && !unitContent) {
+      alert('Παρακαλώ εισάγετε περιεχόμενο.');
+      return;
+    }
     try {
       const existingCount = units.filter(
         u => u.chapterId === selectedChapterForUnit
@@ -165,9 +170,44 @@ export default function AdminConsole() {
       });
       setUnitTitle('');
       setUnitContent('');
+      setPdfFileName('');
       fetchData(orgId);
       alert('Η ενότητα αποθηκεύτηκε!');
     } catch (e) { alert('Σφάλμα.'); }
+  };
+
+  const handlePdfUpload = async (file: File) => {
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      alert('Παρακαλώ επιλέξτε αρχείο PDF.');
+      return;
+    }
+    setPdfUploading(true);
+    setPdfFileName(file.name);
+    try {
+      const cloudName = 'dz4xlea6a';
+      const uploadPreset = 'eduplatform_pdfs';
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.secure_url) {
+        setUnitContent(data.secure_url);
+      } else {
+        alert('Αποτυχία ανεβάσματος PDF.');
+        setPdfFileName('');
+      }
+    } catch (error) {
+      console.error('PDF upload error:', error);
+      alert('Σφάλμα ανεβάσματος.');
+      setPdfFileName('');
+    } finally {
+      setPdfUploading(false);
+    }
   };
 
   const handleAddLiveRoom = async (e: React.FormEvent) => {
@@ -424,18 +464,62 @@ export default function AdminConsole() {
                       </div>
                     </div>
                     
-                    <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-2">
-                      <button type="button" onClick={() => setUnitType('video')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${unitType === 'video' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Video</button>
-                      <button type="button" onClick={() => setUnitType('text')} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${unitType === 'text' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>Text Content</button>
+                    <div>
+                      <label className={labelClassName}>Τύπος Περιεχομένου</label>
+                      <select 
+                        value={unitType} 
+                        onChange={(e) => { setUnitType(e.target.value); setUnitContent(''); setPdfFileName(''); }} 
+                        className={inputClassName}
+                      >
+                        <option value="video">🎥 Βίντεο (YouTube / Vimeo URL)</option>
+                        <option value="text">📝 Κείμενο (Θεωρία)</option>
+                        <option value="pdf">📄 Αρχείο PDF</option>
+                        <option value="quiz">❓ Άσκηση / Quiz (Σύντομα Διαθέσιμο)</option>
+                      </select>
                     </div>
 
                     <input type="text" required value={unitTitle} onChange={(e) => setUnitTitle(e.target.value)} placeholder="Τίτλος Ενότητας (π.χ. 1.1 Βασικοί Ορισμοί)" className={inputClassName}/>
                     
-                    {unitType === 'video' ? (
+                    {unitType === 'video' && (
                       <input type="url" required value={unitContent} onChange={(e) => setUnitContent(e.target.value)} placeholder="YouTube / Vimeo URL" className={`${inputClassName} bg-blue-50/30 border-blue-500/20`}/>
-                    ) : (
+                    )}
+
+                    {unitType === 'text' && (
                       <div className="h-80 mb-14 overflow-hidden rounded-[1.5rem] border-2 border-slate-100 shadow-inner bg-white">
                         <ReactQuill theme="snow" value={unitContent} onChange={setUnitContent} className="h-full" />
+                      </div>
+                    )}
+
+                    {unitType === 'pdf' && (
+                      <div className="space-y-3">
+                        <label className="block cursor-pointer">
+                          <div className={`${inputClassName} bg-blue-50/30 border-blue-500/20 flex items-center justify-center gap-3 hover:bg-blue-50`}>
+                            {pdfUploading ? (
+                              <><Loader2 className="w-5 h-5 animate-spin text-blue-600" /><span>Ανέβασμα...</span></>
+                            ) : unitContent ? (
+                              <><FileText className="w-5 h-5 text-green-600" /><span className="text-green-700">✓ {pdfFileName || 'PDF ανέβηκε'}</span></>
+                            ) : (
+                              <><FileText className="w-5 h-5 text-blue-600" /><span>Επιλογή αρχείου PDF...</span></>
+                            )}
+                          </div>
+                          <input 
+                            type="file" 
+                            accept="application/pdf"
+                            className="hidden"
+                            onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); }}
+                          />
+                        </label>
+                        {unitContent && (
+                          <p className="text-xs text-slate-500 font-medium truncate px-2">URL: {unitContent}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {unitType === 'quiz' && (
+                      <div className="p-8 bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl text-center">
+                        <HelpCircle className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+                        <p className="font-black text-amber-700 text-lg">Quiz Builder — Coming Soon</p>
+                        <p className="text-sm text-amber-600 font-medium mt-2">Η δημιουργία quizzes με πολλαπλές επιλογές θα είναι σύντομα διαθέσιμη.</p>
                       </div>
                     )}
                     
@@ -536,8 +620,16 @@ export default function AdminConsole() {
                           {chapterUnits.map(u => (
                             <div key={u.id} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-blue-200 transition-all">
                                <div className="flex items-center gap-4">
-                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${u.type === 'video' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                    {u.type === 'video' ? <Video size={20}/> : <FileText size={20}/>}
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                    u.type === 'video' ? 'bg-blue-50 text-blue-600' 
+                                    : u.type === 'pdf' ? 'bg-red-50 text-red-600' 
+                                    : u.type === 'quiz' ? 'bg-amber-50 text-amber-600'
+                                    : 'bg-emerald-50 text-emerald-600'
+                                  }`}>
+                                    {u.type === 'video' ? <Video size={20}/> 
+                                     : u.type === 'pdf' ? <FileText size={20}/>
+                                     : u.type === 'quiz' ? <HelpCircle size={20}/>
+                                     : <FileText size={20}/>}
                                   </div>
                                   <span className="font-bold text-slate-700">{u.title}</span>
                                </div>
