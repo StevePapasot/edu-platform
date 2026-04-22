@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { ChevronLeft, BookOpen, Loader2, Lock, FileText, Youtube, HelpCircle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, BookOpen, Loader2, Lock, FileText, Youtube, HelpCircle, CheckCircle2, Download } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LessonStudyPage() {
@@ -19,7 +19,6 @@ export default function LessonStudyPage() {
   const [authorized, setAuthorized] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   
-  // State για το αν η ενότητα είναι ολοκληρωμένη
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
 
@@ -44,22 +43,21 @@ export default function LessonStudyPage() {
         setCourseId(lessonData.courseId);
 
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-const userOrgId = (userDoc.exists() && userDoc.data().orgId) 
-  ? userDoc.data().orgId 
-  : null;
-const userRole = userDoc.data()?.role;
+        const userOrgId = (userDoc.exists() && userDoc.data().orgId) 
+          ? userDoc.data().orgId 
+          : null;
+        const userRole = userDoc.data()?.role;
 
-if (
-  lessonData.orgId !== userOrgId &&
-  userRole !== 'admin' &&
-  userRole !== 'superAdmin'
-) {
-  setAuthorized(false);
-  setLoading(false);
-  return;
-}
+        if (
+          lessonData.orgId !== userOrgId &&
+          userRole !== 'admin' &&
+          userRole !== 'superAdmin'
+        ) {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
 
-        // ΕΛΕΓΧΟΣ: Είναι ήδη ολοκληρωμένη η ενότητα;
         const progressRef = doc(db, 'userProgress', `${user.uid}_${lessonId}`);
         const progressSnap = await getDoc(progressRef);
         setIsCompleted(progressSnap.exists());
@@ -77,7 +75,6 @@ if (
     return () => unsubscribe();
   }, [lessonId, router]);
 
-  // ΛΕΙΤΟΥΡΓΙΑ ΟΛΟΚΛΗΡΩΣΗΣ
   const toggleComplete = async () => {
     if (!userId || !lesson) return;
     setCompleting(true);
@@ -86,11 +83,9 @@ if (
 
     try {
       if (isCompleted) {
-        // Αν ήταν ολοκληρωμένη, την ακυρώνουμε
         await deleteDoc(progressRef);
         setIsCompleted(false);
       } else {
-        // Αν δεν ήταν, τη μαρκάρουμε ως ολοκληρωμένη
         await setDoc(progressRef, {
           userId,
           lessonId,
@@ -120,7 +115,10 @@ if (
               <ChevronLeft className="w-6 h-6" />
             </Link>
             <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-              {lesson.type === 'quiz' ? <HelpCircle className="w-5 h-5 text-indigo-600" /> : <FileText className="w-5 h-5 text-indigo-600" />}
+              {lesson.type === 'quiz' ? <HelpCircle className="w-5 h-5 text-indigo-600" /> 
+               : lesson.type === 'pdf' ? <FileText className="w-5 h-5 text-red-600" />
+               : lesson.type === 'video' ? <Youtube className="w-5 h-5 text-red-500" />
+               : <FileText className="w-5 h-5 text-indigo-600" />}
             </div>
             <div>
               <h1 className="text-xl font-black text-slate-900 tracking-tight">{lesson.title}</h1>
@@ -128,7 +126,6 @@ if (
             </div>
           </div>
 
-          {/* Μικρό εικονίδιο κατάστασης στο Header */}
           {isCompleted && (
             <div className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-600 rounded-full border border-green-100">
               <CheckCircle2 className="w-4 h-4" />
@@ -140,15 +137,51 @@ if (
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
-        {/* ΠΕΡΙΕΧΟΜΕΝΟ */}
-        {lesson.type === 'video' ? (
+        {/* VIDEO */}
+        {lesson.type === 'video' && (
           <div className="bg-slate-900 rounded-3xl p-8 text-center mt-8">
             <Youtube className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <a href={lesson.content} target="_blank" rel="noreferrer" className="text-blue-400 underline font-medium">Άνοιγμα Βίντεο</a>
           </div>
-        ) : (
+        )}
+
+        {/* PDF */}
+        {lesson.type === 'pdf' && (
+          <div className="mt-8 space-y-4">
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+              <iframe
+                src={lesson.content}
+                className="w-full h-[80vh] border-0"
+                title={lesson.title}
+              />
+            </div>
+            <div className="flex justify-center">
+              
+                href={lesson.content}
+                download
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:bg-slate-800 transition-all shadow-lg"
+              >
+                <Download className="w-5 h-5" />
+                ΚΑΤΕΒΑΣΜΑ PDF
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* QUIZ — placeholder for now */}
+        {lesson.type === 'quiz' && (
+          <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-3xl p-12 text-center mt-8">
+            <HelpCircle className="w-16 h-16 text-amber-400 mx-auto mb-4" />
+            <p className="font-black text-amber-700 text-xl">Quiz — Coming Soon</p>
+            <p className="text-amber-600 font-medium mt-2">Αυτή η λειτουργία θα είναι σύντομα διαθέσιμη.</p>
+          </div>
+        )}
+
+        {/* TEXT (default) */}
+        {(lesson.type === 'text' || !lesson.type) && (
           <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-slate-200 mt-8">
-            {/* ΕΔΩ ΕΓΙΝΕ Η ΑΛΛΑΓΗ! Το dangerouslySetInnerHTML αναλαμβάνει δράση! */}
             <div 
               className="prose max-w-none text-slate-700 leading-relaxed font-medium"
               dangerouslySetInnerHTML={{ __html: lesson.content }}
@@ -156,22 +189,24 @@ if (
           </div>
         )}
 
-        {/* ΤΟ ΚΟΥΜΠΙ ΟΛΟΚΛΗΡΩΣΗΣ */}
-        <div className="mt-12 flex justify-center">
-          <button
-            onClick={toggleComplete}
-            disabled={completing}
-            className={`
-              flex items-center gap-3 px-10 py-5 rounded-2xl font-black transition-all transform hover:-translate-y-1 active:scale-95 shadow-xl
-              ${isCompleted 
-                ? 'bg-white text-green-600 border-2 border-green-500 shadow-green-100' 
-                : 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700'}
-            `}
-          >
-            {completing ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6" />}
-            {isCompleted ? 'ΟΛΟΚΛΗΡΩΜΕΝΗ (ΚΛΙΚ ΓΙΑ ΑΚΥΡΩΣΗ)' : 'ΜΑΡΚΑΡΙΣΜΑ ΩΣ ΟΛΟΚΛΗΡΩΜΕΝΗ'}
-          </button>
-        </div>
+        {/* COMPLETE BUTTON */}
+        {lesson.type !== 'quiz' && (
+          <div className="mt-12 flex justify-center">
+            <button
+              onClick={toggleComplete}
+              disabled={completing}
+              className={`
+                flex items-center gap-3 px-10 py-5 rounded-2xl font-black transition-all transform hover:-translate-y-1 active:scale-95 shadow-xl
+                ${isCompleted 
+                  ? 'bg-white text-green-600 border-2 border-green-500 shadow-green-100' 
+                  : 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700'}
+              `}
+            >
+              {completing ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-6 h-6" />}
+              {isCompleted ? 'ΟΛΟΚΛΗΡΩΜΕΝΗ (ΚΛΙΚ ΓΙΑ ΑΚΥΡΩΣΗ)' : 'ΜΑΡΚΑΡΙΣΜΑ ΩΣ ΟΛΟΚΛΗΡΩΜΕΝΗ'}
+            </button>
+          </div>
+        )}
 
       </main>
     </div>
