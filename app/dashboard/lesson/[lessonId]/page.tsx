@@ -145,18 +145,18 @@ export default function LessonStudyPage() {
           </div>
         )}
 
-       {/* PDF */}
+   {/* PDF */}
         {lesson.type === 'pdf' && (
           <div className="mt-8 space-y-4">
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-              <iframe
-                src={lesson.content}
-                className="w-full h-[80vh] border-0"
-                title={lesson.title}
-              />
-            </div>
+             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+               <iframe
+                 src={lesson.content}
+                 className="w-full h-[80vh] border-0"
+                 title={lesson.title}
+               />
+             </div>
             <div className="flex justify-center">
-              
+              <a
                 href={lesson.content}
                 download
                 target="_blank"
@@ -167,7 +167,7 @@ export default function LessonStudyPage() {
                 ΚΑΤΕΒΑΣΜΑ PDF
               </a>
             </div>
-          </div>
+           </div>
         )}
 
         {/* QUIZ — placeholder for now */}
