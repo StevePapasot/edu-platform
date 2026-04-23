@@ -157,7 +157,7 @@ export default function LessonStudyPage() {
               />
             </div>
             <div className="flex justify-center">
-              
+              <a
                 href={lesson.content}
                 download
                 target="_blank"
