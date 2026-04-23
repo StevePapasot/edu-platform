@@ -395,7 +395,8 @@ export default function AdminConsole() {
         </div>
       </aside>
 
-      <main className="ml-72 flex-1 p-8 lg:p-14 overflow-y-auto h-screen relative z-10 custom-scrollbar">
+       <main className="ml-72 flex-1 p-8 lg:p-14 relative z-10 custom-scrollbar">
+        
         <div className="max-w-[1400px] mx-auto">
           
           <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
