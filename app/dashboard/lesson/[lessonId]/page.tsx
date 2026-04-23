@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { ChevronLeft, BookOpen, Loader2, Lock, FileText, Youtube, HelpCircle, CheckCircle2, Download } from 'lucide-react';
 import Link from 'next/link';
+import { QuizPlayer } from '@/src/components/QuizPlayer';
 
 export default function LessonStudyPage() {
   const params = useParams();
@@ -115,7 +116,7 @@ export default function LessonStudyPage() {
               <ChevronLeft className="w-6 h-6" />
             </Link>
             <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-              {lesson.type === 'quiz' ? <HelpCircle className="w-5 h-5 text-indigo-600" /> 
+              {lesson.type === 'quiz' ? <HelpCircle className="w-5 h-5 text-amber-600" /> 
                : lesson.type === 'pdf' ? <FileText className="w-5 h-5 text-red-600" />
                : lesson.type === 'video' ? <Youtube className="w-5 h-5 text-red-500" />
                : <FileText className="w-5 h-5 text-indigo-600" />}
@@ -145,18 +146,18 @@ export default function LessonStudyPage() {
           </div>
         )}
 
-   {/* PDF */}
+        {/* PDF */}
         {lesson.type === 'pdf' && (
           <div className="mt-8 space-y-4">
-             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-               <iframe
-                 src={lesson.content}
-                 className="w-full h-[80vh] border-0"
-                 title={lesson.title}
-               />
-             </div>
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+              <iframe
+                src={lesson.content}
+                className="w-full h-[80vh] border-0"
+                title={lesson.title}
+              />
+            </div>
             <div className="flex justify-center">
-              <a
+              
                 href={lesson.content}
                 download
                 target="_blank"
@@ -167,15 +168,27 @@ export default function LessonStudyPage() {
                 ΚΑΤΕΒΑΣΜΑ PDF
               </a>
             </div>
-           </div>
+          </div>
         )}
 
-        {/* QUIZ — placeholder for now */}
-        {lesson.type === 'quiz' && (
-          <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-3xl p-12 text-center mt-8">
-            <HelpCircle className="w-16 h-16 text-amber-400 mx-auto mb-4" />
-            <p className="font-black text-amber-700 text-xl">Quiz — Coming Soon</p>
-            <p className="text-amber-600 font-medium mt-2">Αυτή η λειτουργία θα είναι σύντομα διαθέσιμη.</p>
+        {/* QUIZ */}
+        {lesson.type === 'quiz' && userId && (
+          <div className="mt-8">
+            {Array.isArray(lesson.questions) && lesson.questions.length > 0 ? (
+              <QuizPlayer 
+                lessonId={lesson.id}
+                courseId={lesson.courseId}
+                userId={userId}
+                questions={lesson.questions}
+                onComplete={() => setIsCompleted(true)}
+              />
+            ) : (
+              <div className="bg-amber-50 border-2 border-dashed border-amber-200 rounded-3xl p-12 text-center">
+                <HelpCircle className="w-16 h-16 text-amber-400 mx-auto mb-4" />
+                <p className="font-black text-amber-700 text-xl">Το Quiz δεν έχει ερωτήσεις ακόμα.</p>
+                <p className="text-amber-600 font-medium mt-2">Επικοινώνησε με τον καθηγητή σου.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -189,7 +202,7 @@ export default function LessonStudyPage() {
           </div>
         )}
 
-        {/* COMPLETE BUTTON */}
+        {/* COMPLETE BUTTON — hidden for quiz (QuizPlayer handles its own completion) */}
         {lesson.type !== 'quiz' && (
           <div className="mt-12 flex justify-center">
             <button
