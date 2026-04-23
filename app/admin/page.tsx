@@ -14,6 +14,7 @@ import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, query, wh
 import { courseService } from '@/src/services/courseService';
 import { greekEducationData, type Category, type Grade, type Subject } from '@/src/data/greekEducation';
 import { LessonEditorModal } from '@/src/components/LessonEditorModal';
+import { QuizBuilder, type QuizQuestion } from '@/src/components/QuizBuilder';
 
 import 'react-quill/dist/quill.snow.css';
 const ReactQuill = dynamic(() => import('react-quill'), { 
@@ -49,6 +50,7 @@ export default function AdminConsole() {
   const [selectedChapterForUnit, setSelectedChapterForUnit] = useState('');
   const [unitType, setUnitType] = useState('video');
   const [unitContent, setUnitContent] = useState('');
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [pdfUploading, setPdfUploading] = useState(false);
   const [pdfFileName, setPdfFileName] = useState('');
 
@@ -154,31 +156,63 @@ export default function AdminConsole() {
   const handleAddUnit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!unitTitle || !selectedChapterForUnit || !orgId) return;
-    if (unitType === 'quiz') { alert('Το Quiz builder έρχεται σύντομα.'); return; }
+    
     if ((unitType === 'video' || unitType === 'pdf') && !unitContent) {
       alert('Παρακαλώ εισάγετε περιεχόμενο.');
       return;
     }
+
+    if (unitType === 'quiz') {
+      if (quizQuestions.length === 0) {
+        alert('Πρόσθεσε τουλάχιστον μία ερώτηση στο quiz.');
+        return;
+      }
+      // Validate each question
+      for (let i = 0; i < quizQuestions.length; i++) {
+        const q = quizQuestions[i];
+        if (!q.text.trim()) {
+          alert(`Η ερώτηση ${i + 1} δεν έχει κείμενο.`);
+          return;
+        }
+        if (q.choices.some(c => !c.trim())) {
+          alert(`Η ερώτηση ${i + 1} έχει κενές επιλογές.`);
+          return;
+        }
+      }
+    }
+
     try {
       const existingCount = units.filter(
         u => u.chapterId === selectedChapterForUnit
       ).length;
-      await addDoc(collection(db, 'lessons'), { 
+      
+      const lessonData: any = { 
         title: unitTitle,
         courseId: selectedCourseForUnit,
         chapterId: selectedChapterForUnit,
         type: unitType,
-        content: unitContent,
+        content: unitType === 'quiz' ? '' : unitContent,
         orgId: orgId,
         order: existingCount + 1,
         createdAt: serverTimestamp()
-      });
+      };
+
+      if (unitType === 'quiz') {
+        lessonData.questions = quizQuestions;
+      }
+
+      await addDoc(collection(db, 'lessons'), lessonData);
+      
       setUnitTitle('');
       setUnitContent('');
       setPdfFileName('');
+      setQuizQuestions([]);
       fetchData(orgId);
       alert('Η ενότητα αποθηκεύτηκε!');
-    } catch (e) { alert('Σφάλμα.'); }
+    } catch (e) { 
+      console.error(e);
+      alert('Σφάλμα.'); 
+    }
   };
 
   const handlePdfUpload = async (file: File) => {
@@ -473,13 +507,13 @@ export default function AdminConsole() {
                       <label className={labelClassName}>Τύπος Περιεχομένου</label>
                       <select 
                         value={unitType} 
-                        onChange={(e) => { setUnitType(e.target.value); setUnitContent(''); setPdfFileName(''); }} 
+                        onChange={(e) => { setUnitType(e.target.value); setUnitContent(''); setPdfFileName(''); setQuizQuestions([]); }} 
                         className={inputClassName}
                       >
                         <option value="video">🎥 Βίντεο (YouTube / Vimeo URL)</option>
                         <option value="text">📝 Κείμενο (Θεωρία)</option>
                         <option value="pdf">📄 Αρχείο PDF</option>
-                        <option value="quiz">❓ Άσκηση / Quiz (Σύντομα Διαθέσιμο)</option>
+                        <option value="quiz">❓ Άσκηση / Quiz</option>
                       </select>
                     </div>
 
@@ -521,10 +555,12 @@ export default function AdminConsole() {
                     )}
 
                     {unitType === 'quiz' && (
-                      <div className="p-8 bg-amber-50 border-2 border-dashed border-amber-200 rounded-2xl text-center">
-                        <HelpCircle className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-                        <p className="font-black text-amber-700 text-lg">Quiz Builder — Coming Soon</p>
-                        <p className="text-sm text-amber-600 font-medium mt-2">Η δημιουργία quizzes με πολλαπλές επιλογές θα είναι σύντομα διαθέσιμη.</p>
+                      <div>
+                        <QuizBuilder 
+                          questions={quizQuestions} 
+                          onChange={setQuizQuestions}
+                          topicHint={unitTitle}
+                        />
                       </div>
                     )}
                     
@@ -670,7 +706,12 @@ export default function AdminConsole() {
                                      : u.type === 'quiz' ? <HelpCircle size={20}/>
                                      : <FileText size={20}/>}
                                   </div>
-                                  <span className="font-bold text-slate-700">{u.title}</span>
+                                  <div>
+                                    <span className="font-bold text-slate-700">{u.title}</span>
+                                    {u.type === 'quiz' && u.questions && (
+                                      <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">{u.questions.length} ερωτήσεις</p>
+                                    )}
+                                  </div>
                                </div>
                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                                  <button 
