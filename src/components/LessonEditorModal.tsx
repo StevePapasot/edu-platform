@@ -5,6 +5,7 @@ import { X, Save, Loader2, Wand2, AlignLeft, Youtube, FileText as FilePdf, HelpC
 import { db } from '@/src/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import RichTextEditor from '@/src/components/RichTextEditor';
+import { QuizBuilder, type QuizQuestion } from '@/src/components/QuizBuilder';
 
 interface LessonEditorModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface LessonEditorModalProps {
 export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonEditorModalProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [pdfUploading, setPdfUploading] = useState(false);
@@ -25,6 +27,7 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
     if (isOpen && lesson) {
       setTitle(lesson.title || '');
       setContent(lesson.content || '');
+      setQuestions(Array.isArray(lesson.questions) ? lesson.questions : []);
       setPdfFileName('');
     }
   }, [isOpen, lesson]);
@@ -36,13 +39,40 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
       alert('Ο τίτλος δεν μπορεί να είναι κενός.');
       return;
     }
+
+    // Quiz-specific validation
+    if (lesson.type === 'quiz') {
+      if (questions.length === 0) {
+        alert('Το quiz πρέπει να έχει τουλάχιστον μία ερώτηση.');
+        return;
+      }
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (!q.text.trim()) {
+          alert(`Η ερώτηση ${i + 1} δεν έχει κείμενο.`);
+          return;
+        }
+        if (q.choices.some(c => !c.trim())) {
+          alert(`Η ερώτηση ${i + 1} έχει κενές επιλογές.`);
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     try {
       const lessonRef = doc(db, 'lessons', lesson.id);
-      await updateDoc(lessonRef, {
-        title: title.trim(),
-        content: content
-      });
+      const updateData: any = {
+        title: title.trim()
+      };
+
+      if (lesson.type === 'quiz') {
+        updateData.questions = questions;
+      } else {
+        updateData.content = content;
+      }
+
+      await updateDoc(lessonRef, updateData);
       onUpdate();
       onClose();
     } catch (error) {
@@ -90,12 +120,7 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
   const handleGenerateAI = async () => {
     setGenerating(true);
     try {
-      let promptStr = '';
-      if (lesson.type === 'quiz') {
-        promptStr = `Είσαι καθηγητής. Δημιούργησε ένα εκπαιδευτικό quiz για μαθητές με θέμα "${title}". Φτιάξε 3 ερωτήσεις πολλαπλής επιλογής (με 4 πιθανές απαντήσεις η καθεμία, Α, Β, Γ, Δ). Στο τέλος δώσε ξεκάθαρα τις σωστές απαντήσεις. Χρησιμοποίησε HTML μορφοποίηση (όπως <b>, <br>, <ul>, <li>) για να είναι όμορφο.`;
-      } else {
-        promptStr = `Είσαι καθηγητής. Γράψε αναλυτική και κατανοητή εκπαιδευτική θεωρία για μαθητές, με θέμα "${title}". Χώρισε το κείμενο σε παραγράφους, χρησιμοποίησε HTML μορφοποίηση (π.χ. <strong>, <h3>, <ul>, <li>, <br>) όπου χρειάζεται για ευκολότερη ανάγνωση, και κράτα ένα φιλικό ύφος.`;
-      }
+      const promptStr = `Είσαι καθηγητής. Γράψε αναλυτική και κατανοητή εκπαιδευτική θεωρία για μαθητές, με θέμα "${title}". Χώρισε το κείμενο σε παραγράφους, χρησιμοποίησε HTML μορφοποίηση (π.χ. <strong>, <h3>, <ul>, <li>, <br>) όπου χρειάζεται για ευκολότερη ανάγνωση, και κράτα ένα φιλικό ύφος.`;
 
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -123,7 +148,7 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
       case 'text': return { icon: <AlignLeft className="w-5 h-5" />, label: 'Συγγραφή Θεωρίας' };
       case 'video': return { icon: <Youtube className="w-5 h-5 text-red-500" />, label: 'Link Βίντεο (YouTube)' };
       case 'pdf': return { icon: <FilePdf className="w-5 h-5 text-red-400" />, label: 'Αρχείο PDF' };
-      case 'quiz': return { icon: <HelpCircle className="w-5 h-5 text-green-500" />, label: 'Δημιουργία Quiz' };
+      case 'quiz': return { icon: <HelpCircle className="w-5 h-5 text-amber-500" />, label: 'Επεξεργασία Quiz' };
       default: return { icon: <AlignLeft className="w-5 h-5" />, label: 'Περιεχόμενο' };
     }
   };
@@ -161,8 +186,8 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
             />
           </div>
 
-          {/* AI BUTTON for text/quiz */}
-          {(lesson.type === 'text' || lesson.type === 'quiz') && (
+          {/* AI BUTTON for text only (quiz has its own AI in QuizBuilder) */}
+          {lesson.type === 'text' && (
             <button 
               onClick={handleGenerateAI}
               disabled={generating}
@@ -182,12 +207,23 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
             </button>
           )}
 
-          {/* CONTENT — TEXT / QUIZ */}
-          {(lesson.type === 'text' || lesson.type === 'quiz') && (
+          {/* CONTENT — TEXT */}
+          {lesson.type === 'text' && (
             <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
               <RichTextEditor 
                 value={content || ''} 
                 onChange={(val) => setContent(val)} 
+              />
+            </div>
+          )}
+
+          {/* CONTENT — QUIZ */}
+          {lesson.type === 'quiz' && (
+            <div className="bg-white rounded-2xl p-5 border border-slate-200">
+              <QuizBuilder 
+                questions={questions} 
+                onChange={setQuestions}
+                topicHint={title}
               />
             </div>
           )}
