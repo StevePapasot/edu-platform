@@ -14,7 +14,7 @@ export interface QuizQuestion {
 interface QuizBuilderProps {
   questions: QuizQuestion[];
   onChange: (questions: QuizQuestion[]) => void;
-  topicHint?: string; // Used for AI generation — usually the lesson title
+  topicHint?: string;
 }
 
 export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps) {
@@ -101,7 +101,6 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
         return;
       }
 
-      // Parse the JSON response — AI might wrap it in markdown
       let cleanText = data.text.trim();
       cleanText = cleanText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
@@ -122,7 +121,6 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
         explanation: String(q.explanation || '')
       }));
 
-      // Append to existing questions rather than replace
       onChange([...questions, ...newQuestions]);
       setAiTopic('');
       alert(`Δημιουργήθηκαν ${newQuestions.length} ερωτήσεις!`);
@@ -137,7 +135,6 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
   return (
     <div className="space-y-4">
       
-      {/* AI GENERATOR */}
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-100 p-5 rounded-2xl space-y-3">
         <div className="flex items-center gap-2 font-black text-purple-700 text-sm">
           <Wand2 className="w-5 h-5" />
@@ -175,7 +172,6 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
         </div>
       </div>
 
-      {/* QUESTIONS LIST */}
       {questions.length === 0 && (
         <div className="p-10 text-center border-2 border-dashed border-slate-200 rounded-2xl">
           <p className="text-slate-500 font-medium mb-4">Δεν έχεις προσθέσει ερωτήσεις ακόμα.</p>
@@ -192,7 +188,6 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
       {questions.map((q, qIndex) => (
         <div key={q.id} className="bg-white border-2 border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
           
-          {/* HEADER */}
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <span className="bg-blue-100 text-blue-700 text-xs font-black px-3 py-1.5 rounded-full">Q{qIndex + 1}</span>
@@ -227,7 +222,6 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
             </button>
           </div>
 
-          {/* QUESTION TEXT */}
           <div>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Ερώτηση</label>
             <textarea
@@ -239,7 +233,6 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
             />
           </div>
 
-          {/* CHOICES */}
           <div>
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Επιλογές (κλικ στο κουμπί για να ορίσεις τη σωστή)</label>
             <div className="space-y-2">
@@ -269,7 +262,35 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
             </div>
           </div>
 
-          {/* EXPLANATION */}
           <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Εξήγηση (προαιρετικό, εμφανίζεται μετά την υποβολή)</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Εξήγηση (προαιρετικό)</label>
             <textarea
+              value={q.explanation || ''}
+              onChange={(e) => updateQuestion(q.id, { explanation: e.target.value })}
+              placeholder="Γιατί είναι σωστή η σωστή απάντηση..."
+              rows={2}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+            />
+          </div>
+
+        </div>
+      ))}
+
+      {questions.length > 0 && (
+        <button
+          type="button"
+          onClick={addQuestion}
+          className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black flex items-center justify-center gap-2 border-2 border-dashed border-slate-300 hover:border-slate-400 transition-all"
+        >
+          <Plus className="w-5 h-5" /> Προσθήκη Ερώτησης
+        </button>
+      )}
+
+      {questions.length > 0 && (
+        <p className="text-xs text-slate-500 text-center font-bold">
+          {questions.length} {questions.length === 1 ? 'ερώτηση' : 'ερωτήσεις'} συνολικά
+        </p>
+      )}
+    </div>
+  );
+}
