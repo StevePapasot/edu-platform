@@ -332,7 +332,7 @@ export default function AdminConsole() {
   const glassCardClassName = "bg-white/90 backdrop-blur-3xl p-8 lg:p-10 rounded-[2.5rem] shadow-[0_0_50px_-12px_rgba(59,130,246,0.15)] border-2 border-white ring-1 ring-slate-200/50 relative overflow-hidden transition-all duration-500";
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] flex font-sans relative selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#f1f5f9] flex font-sans relative selection:bg-blue-500/30 overflow-hidden">
       
       <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-gradient-to-br from-blue-400/20 to-indigo-400/0 rounded-full blur-[120px] pointer-events-none z-0 animate-pulse"></div>
       <div className="fixed bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-gradient-to-tr from-indigo-400/10 to-purple-400/0 rounded-full blur-[120px] pointer-events-none z-0"></div>
@@ -395,8 +395,7 @@ export default function AdminConsole() {
         </div>
       </aside>
 
-       <main className="ml-72 flex-1 p-8 lg:p-14 relative z-10 custom-scrollbar">
-        
+      <main className="ml-72 flex-1 p-8 lg:p-14 overflow-y-auto h-screen relative z-10 custom-scrollbar">
         <div className="max-w-[1400px] mx-auto">
           
           <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
