@@ -125,7 +125,11 @@ export default function DashboardPage() {
           coursesSnap.docs.map(async (courseDoc) => {
             const courseData = courseDoc.data();
             const lessonCountSnap = await getCountFromServer(
-              query(collection(db, 'lessons'), where("courseId", "==", courseDoc.id))
+              query(
+                collection(db, 'lessons'),
+                where("courseId", "==", courseDoc.id),
+                where("orgId", "==", currentOrgId)
+              )
             );
             const total = lessonCountSnap.data().count;
             const completedCount = progressSnap.docs.filter(
