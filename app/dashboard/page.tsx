@@ -78,86 +78,88 @@ export default function DashboardPage() {
   const [showQuizResult, setShowQuizResult] = useState(false);
   const [quizFinished, setQuizFinished] = useState(false);
 
+  const loadUserData = async (user: any) => {
+    try {
+      const userDocSnap = await getDoc(doc(db, 'users', user.uid));
+      if (!userDocSnap.exists()) {
+        router.push('/');
+        return;
+      }
+      const userData = userDocSnap.data();
+      const userRole = userData.role || 'student';
+      const currentOrgId = userData.orgId || 'default-org';
+
+      const profile = {
+        uid: userData.uid,
+        email: userData.email,
+        role: userRole,
+        schoolType: userData.schoolType,
+        grade: userData.grade,
+        orientation: userData.orientation,
+        sector: userData.sector,
+        orgId: currentOrgId,
+        createdAt: userData.createdAt,
+        progress: userData.progress || {},
+      };
+
+      setUserProfile(profile);
+      setIsAdmin(userRole === 'admin' || userRole === 'superAdmin');
+
+      if (currentOrgId) {
+        const orgsRef = collection(db, 'organizations');
+        const qOrg = query(orgsRef, where("orgId", "==", currentOrgId));
+        const orgSnap = await getDocs(qOrg);
+
+        if (!orgSnap.empty) {
+          const orgData = orgSnap.docs[0].data();
+          setOrgName(orgData.name); 
+          if (orgData.status !== 'active') { setIsOrgActive(false); setLoading(false); return; }
+        }
+
+        const [coursesSnap, progressSnap] = await Promise.all([
+          getDocs(query(collection(db, 'courses'), where("orgId", "==", currentOrgId))),
+          getDocs(query(collection(db, 'userProgress'), where("userId", "==", user.uid)))
+        ]);
+
+        const fetchedCourses = await Promise.all(
+          coursesSnap.docs.map(async (courseDoc) => {
+            const courseData = courseDoc.data();
+            const lessonCountSnap = await getCountFromServer(
+              query(collection(db, 'lessons'), where("courseId", "==", courseDoc.id))
+            );
+            const total = lessonCountSnap.data().count;
+            const completedCount = progressSnap.docs.filter(
+              p => p.data().courseId === courseDoc.id
+            ).length;
+            const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+            return { id: courseDoc.id, ...courseData, progress: percentage };
+          })
+        );
+        setOrgCourses(fetchedCourses);
+      }
+
+      // Set grade from profile
+      if (profile.schoolType && profile.grade) {
+        const category = greekEducationData.find(c => c.id === profile.schoolType);
+        const grade = category?.grades.find(g => g.id === profile.grade || g.name === profile.grade);
+        if (category && grade) {
+          setSelectedGrade(grade);
+          setSelectedOrientation(profile.orientation || null);
+          setSelectedSector(profile.sector || null);
+        } else { setSelectedGrade(greekEducationData[0].grades[0]); }
+      } else { setSelectedGrade(greekEducationData[0].grades[0]); }
+
+    } catch (error) { 
+      console.error("Dashboard Fetch Error:", error); 
+      setSelectedGrade(greekEducationData[0].grades[0]); 
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        try {
-          // Single read — derive everything from one document
-          const userDocSnap = await getDoc(doc(db, 'users', user.uid));
-          if (!userDocSnap.exists()) {
-            router.push('/');
-            return;
-          }
-          const userData = userDocSnap.data();
-          const userRole = userData.role || 'student';
-          const currentOrgId = userData.orgId || 'default-org';
-
-          const profile = {
-            uid: userData.uid,
-            email: userData.email,
-            role: userRole,
-            schoolType: userData.schoolType,
-            grade: userData.grade,
-            orientation: userData.orientation,
-            sector: userData.sector,
-            orgId: currentOrgId,
-            createdAt: userData.createdAt,
-            progress: userData.progress || {},
-          };
-
-          setUserProfile(profile);
-          setIsAdmin(userRole === 'admin' || userRole === 'superAdmin');
-
-          if (currentOrgId) {
-            const orgsRef = collection(db, 'organizations');
-            const qOrg = query(orgsRef, where("orgId", "==", currentOrgId));
-            const orgSnap = await getDocs(qOrg);
-
-            if (!orgSnap.empty) {
-              const orgData = orgSnap.docs[0].data();
-              setOrgName(orgData.name); 
-              if (orgData.status !== 'active') { setIsOrgActive(false); setLoading(false); return; }
-            }
-
-            const [coursesSnap, progressSnap] = await Promise.all([
-  getDocs(query(collection(db, 'courses'), where("orgId", "==", currentOrgId))),
-  getDocs(query(collection(db, 'userProgress'), where("userId", "==", user.uid)))
-]);
-
-// Count lessons per course using getCountFromServer — no content downloaded
-const fetchedCourses = await Promise.all(
-  coursesSnap.docs.map(async (courseDoc) => {
-    const courseData = courseDoc.data();
-    const lessonCountSnap = await getCountFromServer(
-      query(collection(db, 'lessons'), where("courseId", "==", courseDoc.id))
-    );
-    const total = lessonCountSnap.data().count;
-    const completedCount = progressSnap.docs.filter(
-      p => p.data().courseId === courseDoc.id
-    ).length;
-    const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
-    return { id: courseDoc.id, ...courseData, progress: percentage };
-  })
-);
-setOrgCourses(fetchedCourses);
-          }
-
-          // Set grade from profile
-          if (profile.schoolType && profile.grade) {
-            const category = greekEducationData.find(c => c.id === profile.schoolType);
-            const grade = category?.grades.find(g => g.id === profile.grade || g.name === profile.grade);
-            if (category && grade) {
-              setSelectedGrade(grade);
-              setSelectedOrientation(profile.orientation || null);
-              setSelectedSector(profile.sector || null);
-            } else { setSelectedGrade(greekEducationData[0].grades[0]); }
-          } else { setSelectedGrade(greekEducationData[0].grades[0]); }
-
-        } catch (error) { 
-          console.error("Dashboard Fetch Error:", error); 
-          setSelectedGrade(greekEducationData[0].grades[0]); 
-        }
+        await loadUserData(user);
         setLoading(false);
       } else {
         router.push('/');
@@ -481,7 +483,13 @@ setOrgCourses(fetchedCourses);
       )}
 
       {isSettingsOpen && (
-        <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} userProfile={userProfile} userId={currentUser?.uid} onUpdate={() => router.refresh()} />
+        <SettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={() => setIsSettingsOpen(false)} 
+          userProfile={userProfile} 
+          userId={currentUser?.uid} 
+          onUpdate={() => currentUser && loadUserData(currentUser)} 
+        />
       )}
     </div>
   );
