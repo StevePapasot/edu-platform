@@ -7,7 +7,7 @@ import {
   ShieldAlert, ChevronRight, BookOpen, GraduationCap, UserCog,
   Loader2, Gift, MonitorPlay, Award, Palette, ShieldCheck, X,
   Trophy, CheckCircle2, XCircle, RotateCcw, ChevronLeft, Compass
-} from 'lucide-react';a
+} from 'lucide-react';
 
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
