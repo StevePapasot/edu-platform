@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, Loader2, Wand2, AlignLeft, Youtube, FileText as FilePdf, HelpCircle, Upload } from 'lucide-react';
 import { db } from '@/src/lib/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import toast from 'react-hot-toast';
 import RichTextEditor from '@/src/components/RichTextEditor';
 import { QuizBuilder, type QuizQuestion } from '@/src/components/QuizBuilder';
 
@@ -36,24 +37,23 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
 
   const handleSave = async () => {
     if (!title.trim()) {
-      alert('Ο τίτλος δεν μπορεί να είναι κενός.');
+      toast.error('Ο τίτλος δεν μπορεί να είναι κενός.');
       return;
     }
 
-    // Quiz-specific validation
     if (lesson.type === 'quiz') {
       if (questions.length === 0) {
-        alert('Το quiz πρέπει να έχει τουλάχιστον μία ερώτηση.');
+        toast.error('Το quiz πρέπει να έχει τουλάχιστον μία ερώτηση.');
         return;
       }
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
         if (!q.text.trim()) {
-          alert(`Η ερώτηση ${i + 1} δεν έχει κείμενο.`);
+          toast.error(`Η ερώτηση ${i + 1} δεν έχει κείμενο.`);
           return;
         }
         if (q.choices.some(c => !c.trim())) {
-          alert(`Η ερώτηση ${i + 1} έχει κενές επιλογές.`);
+          toast.error(`Η ερώτηση ${i + 1} έχει κενές επιλογές.`);
           return;
         }
       }
@@ -77,7 +77,7 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
       onClose();
     } catch (error) {
       console.error("Error saving lesson:", error);
-      alert('Σφάλμα κατά την αποθήκευση.');
+      toast.error('Σφάλμα κατά την αποθήκευση.');
     } finally {
       setSaving(false);
     }
@@ -86,7 +86,7 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
   const handlePdfUpload = async (file: File) => {
     if (!file) return;
     if (file.type !== 'application/pdf') {
-      alert('Παρακαλώ επιλέξτε αρχείο PDF.');
+      toast.error('Παρακαλώ επιλέξτε αρχείο PDF.');
       return;
     }
     setPdfUploading(true);
@@ -105,12 +105,12 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
       if (data.secure_url) {
         setContent(data.secure_url);
       } else {
-        alert('Αποτυχία ανεβάσματος PDF.');
+        toast.error('Αποτυχία ανεβάσματος PDF.');
         setPdfFileName('');
       }
     } catch (error) {
       console.error('PDF upload error:', error);
-      alert('Σφάλμα ανεβάσματος.');
+      toast.error('Σφάλμα ανεβάσματος.');
       setPdfFileName('');
     } finally {
       setPdfUploading(false);
@@ -133,11 +133,11 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
       if (res.ok) {
         setContent(data.text);
       } else {
-        alert("Σφάλμα AI: " + data.error);
+        toast.error("Σφάλμα AI: " + data.error);
       }
     } catch (error) {
       console.error("AI Generation failed:", error);
-      alert("Αποτυχία σύνδεσης με το Gemini AI.");
+      toast.error('Αποτυχία σύνδεσης με το Gemini AI.');
     } finally {
       setGenerating(false);
     }
@@ -174,7 +174,6 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
 
         <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50 space-y-4">
           
-          {/* TITLE FIELD */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200">
             <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Τίτλος Ενότητας</label>
             <input
@@ -186,7 +185,6 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
             />
           </div>
 
-          {/* AI BUTTON for text only (quiz has its own AI in QuizBuilder) */}
           {lesson.type === 'text' && (
             <button 
               onClick={handleGenerateAI}
@@ -207,7 +205,6 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
             </button>
           )}
 
-          {/* CONTENT — TEXT */}
           {lesson.type === 'text' && (
             <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
               <RichTextEditor 
@@ -217,7 +214,6 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
             </div>
           )}
 
-          {/* CONTENT — QUIZ */}
           {lesson.type === 'quiz' && (
             <div className="bg-white rounded-2xl p-5 border border-slate-200">
               <QuizBuilder 
@@ -228,7 +224,6 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
             </div>
           )}
 
-          {/* CONTENT — VIDEO */}
           {lesson.type === 'video' && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200">
               <label className="block text-sm font-bold text-slate-700 mb-2">YouTube / Vimeo URL</label>
@@ -242,7 +237,6 @@ export function LessonEditorModal({ isOpen, onClose, lesson, onUpdate }: LessonE
             </div>
           )}
 
-          {/* CONTENT — PDF */}
           {lesson.type === 'pdf' && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 space-y-4">
               <div>
