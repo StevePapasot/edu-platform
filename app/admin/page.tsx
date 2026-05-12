@@ -15,6 +15,7 @@ import { courseService } from '@/src/services/courseService';
 import { greekEducationData, type Category, type Grade, type Subject } from '@/src/data/greekEducation';
 import { LessonEditorModal } from '@/src/components/LessonEditorModal';
 import { QuizBuilder, type QuizQuestion } from '@/src/components/QuizBuilder';
+import toast from 'react-hot-toast';
 
 import 'react-quill/dist/quill.snow.css';
 const ReactQuill = dynamic(() => import('react-quill'), { 
@@ -58,7 +59,6 @@ export default function AdminConsole() {
   const [liveUrl, setLiveUrl] = useState('');
   const [selectedCourseForLive, setSelectedCourseForLive] = useState('');
 
-  // Editor modal state
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<any>(null);
 
@@ -129,8 +129,8 @@ export default function AdminConsole() {
         createdAt: serverTimestamp()
       });
       fetchData(orgId);
-      alert('Το μάθημα ενεργοποιήθηκε επιτυχώς!');
-    } catch (e) { alert('Σφάλμα κατά την αποθήκευση.'); }
+      toast.success('Το μάθημα ενεργοποιήθηκε επιτυχώς!');
+    } catch (e) { toast.error('Σφάλμα κατά την αποθήκευση.'); }
   };
 
   const handleAddChapter = async (e: React.FormEvent) => {
@@ -149,8 +149,8 @@ export default function AdminConsole() {
       });
       setChapterTitle('');
       fetchData(orgId);
-      alert('Το κεφάλαιο προστέθηκε!');
-    } catch (e) { alert('Σφάλμα.'); }
+      toast.success('Το κεφάλαιο προστέθηκε!');
+    } catch (e) { toast.error('Σφάλμα αποθήκευσης.'); }
   };
 
   const handleAddUnit = async (e: React.FormEvent) => {
@@ -158,24 +158,23 @@ export default function AdminConsole() {
     if (!unitTitle || !selectedChapterForUnit || !orgId) return;
     
     if ((unitType === 'video' || unitType === 'pdf') && !unitContent) {
-      alert('Παρακαλώ εισάγετε περιεχόμενο.');
+      toast.error('Παρακαλώ εισάγετε περιεχόμενο.');
       return;
     }
 
     if (unitType === 'quiz') {
       if (quizQuestions.length === 0) {
-        alert('Πρόσθεσε τουλάχιστον μία ερώτηση στο quiz.');
+        toast.error('Πρόσθεσε τουλάχιστον μία ερώτηση στο quiz.');
         return;
       }
-      // Validate each question
       for (let i = 0; i < quizQuestions.length; i++) {
         const q = quizQuestions[i];
         if (!q.text.trim()) {
-          alert(`Η ερώτηση ${i + 1} δεν έχει κείμενο.`);
+          toast.error(`Η ερώτηση ${i + 1} δεν έχει κείμενο.`);
           return;
         }
         if (q.choices.some(c => !c.trim())) {
-          alert(`Η ερώτηση ${i + 1} έχει κενές επιλογές.`);
+          toast.error(`Η ερώτηση ${i + 1} έχει κενές επιλογές.`);
           return;
         }
       }
@@ -208,17 +207,17 @@ export default function AdminConsole() {
       setPdfFileName('');
       setQuizQuestions([]);
       fetchData(orgId);
-      alert('Η ενότητα αποθηκεύτηκε!');
+      toast.success('Η ενότητα αποθηκεύτηκε!');
     } catch (e) { 
       console.error(e);
-      alert('Σφάλμα.'); 
+      toast.error('Σφάλμα αποθήκευσης.'); 
     }
   };
 
   const handlePdfUpload = async (file: File) => {
     if (!file) return;
     if (file.type !== 'application/pdf') {
-      alert('Παρακαλώ επιλέξτε αρχείο PDF.');
+      toast.error('Παρακαλώ επιλέξτε αρχείο PDF.');
       return;
     }
     setPdfUploading(true);
@@ -237,12 +236,12 @@ export default function AdminConsole() {
       if (data.secure_url) {
         setUnitContent(data.secure_url);
       } else {
-        alert('Αποτυχία ανεβάσματος PDF.');
+        toast.error('Αποτυχία ανεβάσματος PDF.');
         setPdfFileName('');
       }
     } catch (error) {
       console.error('PDF upload error:', error);
-      alert('Σφάλμα ανεβάσματος.');
+      toast.error('Σφάλμα ανεβάσματος.');
       setPdfFileName('');
     } finally {
       setPdfUploading(false);
@@ -265,8 +264,8 @@ export default function AdminConsole() {
       setLiveTitle('');
       setLiveUrl('');
       fetchData(orgId);
-      alert('Η αίθουσα Zoom αποθηκεύτηκε!');
-    } catch (e) { alert('Σφάλμα.'); }
+      toast.success('Η αίθουσα Zoom αποθηκεύτηκε!');
+    } catch (e) { toast.error('Σφάλμα αποθήκευσης.'); }
   };
 
   const handleDelete = async (coll: string, id: string) => {
@@ -313,7 +312,7 @@ export default function AdminConsole() {
       fetchData(orgId!);
 
     } catch (e) { 
-      alert('Σφάλμα κατά τη διαγραφή.'); 
+      toast.error('Σφάλμα κατά τη διαγραφή.'); 
       console.error(e);
     }
   };
@@ -631,7 +630,6 @@ export default function AdminConsole() {
                     </div>
                   ))}
 
-
                   {activeView === 'chapters' && !selectedCourseForChapter && (
                     <div className="p-16 text-center">
                       <FolderTree className="w-12 h-12 text-slate-200 mx-auto mb-4" />
@@ -670,8 +668,6 @@ export default function AdminConsole() {
                       </div>
                     );
                   })()}
-
-                  
 
                   {activeView === 'units' && !selectedCourseForUnit && (
                     <div className="p-16 text-center">
