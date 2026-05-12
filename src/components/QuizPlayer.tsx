@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, RotateCcw, Send, Loader2, Award, AlertCircle } from 'lucide-react';
 import { db } from '@/src/lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import toast from 'react-hot-toast';
 import type { QuizQuestion } from '@/src/components/QuizBuilder';
 
 interface QuizPlayerProps {
@@ -29,7 +30,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
   const [lastAttempt, setLastAttempt] = useState<QuizAttempt | null>(null);
   const [loadingAttempt, setLoadingAttempt] = useState(true);
 
-  // Load previous attempt if exists
   useEffect(() => {
     const loadPreviousAttempt = async () => {
       try {
@@ -58,16 +58,14 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
   };
 
   const handleSubmit = async () => {
-    // Validate all questions answered
     const unanswered = answers.findIndex(a => a === null);
     if (unanswered !== -1) {
-      alert(`Δεν έχεις απαντήσει την ερώτηση ${unanswered + 1}.`);
+      toast.error(`Δεν έχεις απαντήσει την ερώτηση ${unanswered + 1}.`);
       return;
     }
 
     setSubmitting(true);
 
-    // Calculate score
     let score = 0;
     questions.forEach((q, i) => {
       if (answers[i] === q.correctIndex) score++;
@@ -98,7 +96,7 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
       onComplete?.();
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      alert('Σφάλμα κατά την υποβολή.');
+      toast.error('Σφάλμα κατά την υποβολή.');
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +115,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
     );
   }
 
-  // Show previous attempt summary if exists and not currently in a new attempt
   if (lastAttempt && !submitted && answers.every(a => a === null)) {
     const getScoreColor = () => {
       if (lastAttempt.percentage >= 80) return 'from-green-500 to-emerald-600';
@@ -144,7 +141,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
 
         <button
           onClick={() => {
-            // Show review of last attempt
             setAnswers(lastAttempt.answers);
             setSubmitted(true);
           }}
@@ -156,7 +152,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
     );
   }
 
-  // Results view
   if (submitted && lastAttempt) {
     const getScoreColor = () => {
       if (lastAttempt.percentage >= 80) return 'from-green-500 to-emerald-600';
@@ -167,8 +162,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
 
     return (
       <div className="space-y-6">
-        
-        {/* SCORE CARD */}
         <div className={`bg-gradient-to-br ${getScoreColor()} rounded-3xl p-8 text-white text-center shadow-xl`}>
           <Award className="w-16 h-16 mx-auto mb-4 opacity-90" />
           <p className="text-sm font-black uppercase tracking-widest opacity-90 mb-2">Το Αποτέλεσμά σου</p>
@@ -176,7 +169,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
           <p className="text-lg font-bold opacity-90">{lastAttempt.score} από {lastAttempt.total} σωστά</p>
         </div>
 
-        {/* REVIEW */}
         <div className="space-y-4">
           <h4 className="font-black text-slate-800 text-lg">Αναλυτική Προβολή</h4>
           
@@ -186,7 +178,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
             
             return (
               <div key={q.id} className={`bg-white rounded-2xl p-5 border-2 ${isCorrect ? 'border-green-200' : 'border-red-200'} shadow-sm`}>
-                
                 <div className="flex items-start gap-3 mb-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                     {isCorrect ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
@@ -249,14 +240,11 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
     );
   }
 
-  // Quiz taking view
   const answeredCount = answers.filter(a => a !== null).length;
   const allAnswered = answeredCount === questions.length;
 
   return (
     <div className="space-y-6">
-      
-      {/* PROGRESS */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm sticky top-24 z-10">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Πρόοδος</span>
@@ -270,7 +258,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
         </div>
       </div>
 
-      {/* QUESTIONS */}
       {questions.map((q, qIndex) => (
         <div key={q.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <div className="flex items-start gap-3 mb-5">
@@ -304,7 +291,6 @@ export function QuizPlayer({ lessonId, courseId, userId, questions, onComplete }
         </div>
       ))}
 
-      {/* SUBMIT */}
       <button
         onClick={handleSubmit}
         disabled={!allAnswered || submitting}
