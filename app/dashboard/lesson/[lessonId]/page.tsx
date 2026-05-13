@@ -8,6 +8,7 @@ import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firest
 import { ChevronLeft, BookOpen, Loader2, Lock, FileText, Youtube, HelpCircle, CheckCircle2, Download } from 'lucide-react';
 import Link from 'next/link';
 import { QuizPlayer } from '@/src/components/QuizPlayer';
+import DOMPurify from 'dompurify';
 
 export default function LessonStudyPage() {
   const params = useParams();
