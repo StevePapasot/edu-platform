@@ -198,7 +198,7 @@ export default function LessonStudyPage() {
           <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-slate-200 mt-8">
             <div 
               className="prose max-w-none text-slate-700 leading-relaxed font-medium"
-              dangerouslySetInnerHTML={{ __html: lesson.content }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(lesson.content || '') }}
             />
           </div>
         )}
