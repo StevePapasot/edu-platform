@@ -87,7 +87,12 @@ export default function DashboardPage() {
       }
       const userData = userDocSnap.data();
       const userRole = userData.role || 'student';
-      const currentOrgId = userData.orgId || 'default-org';
+      const currentOrgId = userData.orgId || null;
+
+      if (!currentOrgId && userRole !== 'superAdmin') {
+        setLoading(false);
+        return;
+      }
 
       const profile = {
         uid: userData.uid,
