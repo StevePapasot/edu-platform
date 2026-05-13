@@ -41,7 +41,13 @@ export default function CoursePage() {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         
         // ΔΙΟΡΘΩΣΗ 1: Ασφαλής ανάγνωση του orgId με fallback
-        const userOrgId = (userDoc.exists() && userDoc.data().orgId) ? userDoc.data().orgId : 'default-org';
+        const userOrgId = (userDoc.exists() && userDoc.data().orgId) ? userDoc.data().orgId : null;
+
+        if (!userOrgId && userDoc.data()?.role !== 'superAdmin') {
+          setAuthorized(false);
+          setLoading(false);
+          return;
+        }
 
         if (courseData.orgId !== userOrgId && userDoc.data()?.role !== 'admin') {
           setAuthorized(false);
