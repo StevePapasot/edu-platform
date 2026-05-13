@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, Loader2, Wand2, GripVertical, Check, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export interface QuizQuestion {
   id: string;
@@ -66,7 +67,7 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
   const handleAIGenerate = async () => {
     const topic = aiTopic.trim() || topicHint?.trim();
     if (!topic) {
-      alert('Γράψε ένα θέμα για το AI.');
+      toast.error('Γράψε ένα θέμα για το AI.');
       return;
     }
     setGenerating(true);
@@ -97,7 +98,7 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
 
       const data = await res.json();
       if (!res.ok) {
-        alert('Σφάλμα AI: ' + (data.error || 'Άγνωστο σφάλμα'));
+        toast.error('Σφάλμα AI: ' + (data.error || 'Άγνωστο σφάλμα'));
         return;
       }
 
@@ -123,10 +124,10 @@ export function QuizBuilder({ questions, onChange, topicHint }: QuizBuilderProps
 
       onChange([...questions, ...newQuestions]);
       setAiTopic('');
-      alert(`Δημιουργήθηκαν ${newQuestions.length} ερωτήσεις!`);
+      toast.success(`Δημιουργήθηκαν ${newQuestions.length} ερωτήσεις!`);
     } catch (error: any) {
       console.error('AI quiz generation error:', error);
-      alert('Αποτυχία δημιουργίας: ' + (error.message || 'Το AI επέστρεψε μη έγκυρη μορφή.'));
+      toast.error('Αποτυχία δημιουργίας: ' + (error.message || 'Το AI επέστρεψε μη έγκυρη μορφή.'));
     } finally {
       setGenerating(false);
     }
