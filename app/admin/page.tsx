@@ -77,9 +77,8 @@ export default function AdminConsole() {
               setOrgId(currentRealOrgId);
               fetchData(currentRealOrgId);
             } else {
-              toast.error('Δεν βρέθηκε οργανισμός. Ολοκλήρωσε πρώτα την εγγραφή σου.');
-              router.push('/dashboard');
-              return;
+              setOrgId('default-org');
+              fetchData('default-org');
             }
           } else { router.push('/dashboard'); }
         } catch (e) { router.push('/dashboard'); }

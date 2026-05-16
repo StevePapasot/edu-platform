@@ -8,7 +8,6 @@ import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firest
 import { ChevronLeft, BookOpen, Loader2, Lock, FileText, Youtube, HelpCircle, CheckCircle2, Download } from 'lucide-react';
 import Link from 'next/link';
 import { QuizPlayer } from '@/src/components/QuizPlayer';
-import DOMPurify from 'dompurify';
 
 export default function LessonStudyPage() {
   const params = useParams();
@@ -198,7 +197,7 @@ export default function LessonStudyPage() {
           <div className="bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-slate-200 mt-8">
             <div 
               className="prose max-w-none text-slate-700 leading-relaxed font-medium"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(lesson.content || '') }}
+              dangerouslySetInnerHTML={{ __html: lesson.content }}
             />
           </div>
         )}

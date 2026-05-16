@@ -35,10 +35,7 @@ export default function StudentLivePage() {
           if (userDocSnap.exists() && userDocSnap.data().orgId) {
              currentOrgId = userDocSnap.data().orgId;
           }
-          if (!currentOrgId) {
-            setLoading(false);
-            return;
-          }
+          if (!currentOrgId) currentOrgId = 'default-org';
           
           const category = greekEducationData.find(c => c.id === profile?.schoolType);
           const studentGradeId = category?.grades.find(g => g.id === profile?.grade)?.id;
