@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { 
   BookOpen, LogOut, LayoutDashboard, ShieldCheck, Loader2, 
   Video, Plus, Trash2, Layers, FileText, FolderTree, Sparkles, MonitorPlay,
-  ChevronRight, ArrowRight, Settings, Globe, Zap, HelpCircle, Edit
+  ChevronRight, ArrowRight, Settings, Globe, Zap, HelpCircle, Edit, BarChart3
 } from 'lucide-react';
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
