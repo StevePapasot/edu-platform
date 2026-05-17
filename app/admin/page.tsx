@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import { 
   BookOpen, LogOut, LayoutDashboard, ShieldCheck, Loader2, 
   Video, Plus, Trash2, Layers, FileText, FolderTree, Sparkles, MonitorPlay,
-  ChevronRight, ArrowRight, Settings, Globe, Zap, HelpCircle, Edit, BarChart3
+  ChevronRight, ArrowRight, Settings, Globe, Zap, HelpCircle, Edit
 } from 'lucide-react';
 import { auth, db } from '@/src/lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
@@ -77,9 +77,8 @@ export default function AdminConsole() {
               setOrgId(currentRealOrgId);
               fetchData(currentRealOrgId);
             } else {
-              toast.error('Δεν βρέθηκε οργανισμός. Ολοκλήρωσε πρώτα την εγγραφή σου.');
-              router.push('/dashboard');
-              return;
+              setOrgId('default-org');
+              fetchData('default-org');
             }
           } else { router.push('/dashboard'); }
         } catch (e) { router.push('/dashboard'); }
@@ -377,15 +376,11 @@ export default function AdminConsole() {
           <button onClick={() => setActiveView('units')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${activeView === 'units' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/50 scale-[1.02]' : 'hover:bg-slate-800/50 text-slate-400 hover:text-white'}`}>
             <Layers className={`w-5 h-5 ${activeView === 'units' ? 'text-white' : 'text-purple-500'}`} /> 3. Ύλη & Υλικό
           </button>
-
-          <button onClick={() => router.push('/admin/analytics')} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 hover:bg-slate-800/50 text-slate-400 hover:text-white">
-            <BarChart3 className="w-5 h-5 text-emerald-500" /> 4. Analytics
-          </button>
           
           <div className="my-6 border-t border-slate-800/50 mx-2"></div>
           
           <button onClick={() => setActiveView('live')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 ${activeView === 'live' ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-red-900/50 scale-[1.02]' : 'hover:bg-slate-800/50 text-rose-400 hover:text-rose-300'}`}>
-            <MonitorPlay className="w-5 h-5" /> 5. Live (Zoom)
+            <MonitorPlay className="w-5 h-5" /> 4. Live (Zoom)
           </button>
         </nav>
 
